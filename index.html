@@ -1,1184 +1,776 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chomp Beat FX - Ultimate Monster Rhythm Runner</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
-        
-        body {
-            font-family: 'Rajdhani', sans-serif;
-            background-color: #030206;
-            color: #f3f4f6;
-            overflow: hidden;
-            user-select: none;
-            touch-action: none;
-        }
-
-        .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .glass-panel {
-            background: rgba(15, 10, 24, 0.88);
-            backdrop-filter: blur(14px);
-            border: 1px solid rgba(239, 68, 68, 0.35);
-            box-shadow: 0 8px 32px 0 rgba(239, 68, 68, 0.2);
-        }
-
-        .glass-button {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(185, 28, 28, 0.95) 100%);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 0 18px rgba(239, 68, 68, 0.5);
-        }
-
-        .glass-button:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 0 30px rgba(239, 68, 68, 0.8);
-            background: linear-gradient(135deg, rgba(248, 113, 113, 1) 0%, rgba(220, 38, 38, 1) 100%);
-        }
-
-        .glass-button:active {
-            transform: translateY(1px) scale(0.98);
-        }
-
-        .neon-text-red {
-            text-shadow: 0 0 10px rgba(239, 68, 68, 0.9), 0 0 25px rgba(239, 68, 68, 0.5);
-        }
-
-        .frenzy-glow {
-            text-shadow: 0 0 12px #a855f7, 0 0 28px #a855f7;
-        }
-
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(10, 10, 15, 0.5);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(239, 68, 68, 0.5);
-            border-radius: 3px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Monster Beat Surfer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #050508;
+      color: #fff;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    .glow-text {
+      text-shadow: 0 0 10px rgba(236, 72, 153, 0.7), 0 0 20px rgba(168, 85, 247, 0.5);
+    }
+    .cyber-card {
+      background: rgba(15, 15, 26, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(236, 72, 153, 0.3);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(236, 72, 153, 0.15);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #ec4899;
+      border-radius: 3px;
+    }
+  </style>
 </head>
-<body class="w-screen h-screen relative flex items-center justify-center">
+<body class="relative select-none">
 
-    <!-- Game Canvas -->
-    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full block z-0"></canvas>
+  <!-- CANVAS DE JUEGO -->
+  <canvas id="gameCanvas"></canvas>
 
-    <!-- HUD Overlay (Playing State) -->
-    <div id="hudOverlay" class="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-4 sm:p-6 hidden">
-        <!-- Top HUD Bar -->
-        <div class="flex justify-between items-start w-full">
-            <div class="flex gap-2 sm:gap-4 items-center">
-                <!-- Score -->
-                <div class="glass-panel px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl border border-red-500/40">
-                    <p class="text-[10px] sm:text-xs uppercase tracking-widest text-red-400 font-bold">Puntos</p>
-                    <p id="hudScore" class="text-2xl sm:text-3xl font-orbitron font-extrabold text-white">0</p>
-                </div>
-                <!-- Combo -->
-                <div class="glass-panel px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl border border-purple-500/40">
-                    <p class="text-[10px] sm:text-xs uppercase tracking-widest text-purple-400 font-bold">Combo</p>
-                    <p id="hudCombo" class="text-2xl sm:text-3xl font-orbitron font-extrabold text-purple-300">0x</p>
-                </div>
-                <!-- Active Buff Badges -->
-                <div id="buffContainer" class="flex gap-2 items-center"></div>
-            </div>
-
-            <!-- Pause Button -->
-            <button id="pauseBtn" class="pointer-events-auto glass-panel w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center hover:bg-red-900/40 transition text-red-400 text-lg sm:text-xl border border-red-500/50">
-                <i class="fa-solid fa-pause"></i>
-            </button>
-        </div>
-
-        <!-- Frenzy / Bite Meter Bar -->
-        <div class="w-full max-w-md mx-auto my-2 pointer-events-none">
-            <div class="flex justify-between text-xs font-bold uppercase tracking-wider mb-1">
-                <span id="frenzyLabel" class="text-red-400">Modo Furia</span>
-                <span id="frenzyPercent" class="text-red-300">0%</span>
-            </div>
-            <div class="w-full h-3 bg-black/60 rounded-full border border-red-500/30 overflow-hidden p-0.5">
-                <div id="frenzyBar" class="h-full bg-gradient-to-r from-red-600 via-pink-500 to-purple-600 rounded-full w-0 transition-all duration-200"></div>
-            </div>
-        </div>
-
-        <!-- Bottom Controls Info -->
-        <div class="w-full flex justify-between items-end">
-            <div class="text-xs text-gray-300 glass-panel px-4 py-2 rounded-lg border border-gray-700/50 hidden md:block">
-                <span class="text-red-400 font-bold"><i class="fa-solid fa-keyboard mr-1"></i> Controles:</span> 
-                [← / → / A / D] Moverse | [↑ / W / Espacio] Saltar | [↓ / S] Deslizarse
-            </div>
-            <!-- Touch Control Overlay for Mobile -->
-            <div class="pointer-events-auto grid grid-cols-3 gap-2 md:hidden w-full max-w-xs mx-auto">
-                <div></div>
-                <button id="mobileUp" class="glass-panel py-3 rounded-xl text-xl text-red-400 active:bg-red-500/30 flex justify-center items-center">
-                    <i class="fa-solid fa-arrow-up"></i>
-                </button>
-                <div></div>
-                <button id="mobileLeft" class="glass-panel py-3 rounded-xl text-xl text-red-400 active:bg-red-500/30 flex justify-center items-center">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </button>
-                <button id="mobileDown" class="glass-panel py-3 rounded-xl text-xl text-red-400 active:bg-red-500/30 flex justify-center items-center">
-                    <i class="fa-solid fa-arrow-down"></i>
-                </button>
-                <button id="mobileRight" class="glass-panel py-3 rounded-xl text-xl text-red-400 active:bg-red-500/30 flex justify-center items-center">
-                    <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </div>
-        </div>
+  <!-- HUD SUPERIOR (Durante el juego) -->
+  <div id="hud" class="hidden absolute top-0 left-0 w-full p-4 flex justify-between items-start pointer-events-none z-10">
+    <div class="flex flex-col gap-1">
+      <div class="text-xs uppercase tracking-widest text-pink-400 font-bold">Puntuación</div>
+      <div id="scoreDisplay" class="text-4xl font-extrabold text-white glow-text">0</div>
+      <div id="comboDisplay" class="text-sm font-bold text-yellow-400 opacity-0 transition-opacity">0x COMBO!</div>
     </div>
 
-    <!-- Main Menu Overlay -->
-    <div id="mainMenu" class="absolute inset-0 z-20 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-        <div class="glass-panel w-full max-w-lg p-6 sm:p-8 rounded-3xl flex flex-col gap-5 text-center border-red-600/40 relative overflow-hidden">
-            <div class="absolute -top-20 -left-20 w-40 h-40 bg-red-600/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
-
-            <div>
-                <h1 class="text-4xl sm:text-5xl font-orbitron font-black text-white tracking-wider neon-text-red">
-                    CHOMP <span class="text-red-500">BEAT FX</span>
-                </h1>
-                <p class="text-xs sm:text-sm text-gray-400 mt-1 uppercase tracking-widest">Monster Rhythm Runner con Salto y Deslizamiento</p>
-            </div>
-
-            <!-- Options Panel -->
-            <div class="flex flex-col gap-4 text-left">
-                <!-- Track Selection -->
-                <div>
-                    <label class="block text-xs font-bold text-red-400 uppercase tracking-wider mb-2">
-                        <i class="fa-solid fa-music mr-1"></i> Selección de Audio
-                    </label>
-                    <div class="flex flex-col gap-2">
-                        <button id="selectDemoBtn" class="w-full text-left glass-panel p-3 rounded-xl border border-red-500/50 hover:bg-red-500/20 transition flex items-center justify-between text-xs sm:text-sm">
-                            <span><i class="fa-solid fa-compact-disc mr-2 text-red-400"></i> Pista Synthwave Rítmica (Generada)</span>
-                            <span id="demoBadge" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded font-bold">Activa</span>
-                        </button>
-
-                        <div class="flex gap-2">
-                            <input type="text" id="songUrlInput" placeholder="https://ejemplo.com/cancion.mp3" class="flex-1 bg-black/60 border border-gray-700 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
-                            <button id="loadUrlBtn" class="px-3 py-2 bg-gray-800 hover:bg-red-600/60 rounded-xl text-xs font-bold transition">Cargar URL</button>
-                        </div>
-
-                        <label class="cursor-pointer glass-panel p-2.5 rounded-xl border border-gray-700/80 hover:border-red-500/50 transition flex items-center justify-center text-xs text-gray-300 gap-2">
-                            <i class="fa-solid fa-file-audio text-red-400"></i>
-                            <span id="fileUploadLabel">Subir MP3 o Audio Local</span>
-                            <input type="file" id="audioFileInput" accept="audio/*" class="hidden">
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Difficulty Selection -->
-                <div>
-                    <label class="block text-xs font-bold text-red-400 uppercase tracking-wider mb-2">
-                        <i class="fa-solid fa-gauge-high mr-1"></i> Dificultad
-                    </label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button data-diff="easy" class="diff-btn glass-panel py-2 rounded-xl text-xs font-bold border border-gray-700 text-gray-400 hover:border-green-500 transition">Fácil</button>
-                        <button data-diff="medium" class="diff-btn glass-panel py-2 rounded-xl text-xs font-bold border border-red-500 bg-red-500/20 text-white">Normal</button>
-                        <button data-diff="hard" class="diff-btn glass-panel py-2 rounded-xl text-xs font-bold border border-gray-700 text-gray-400 hover:border-purple-500 transition">Difícil</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gameplay Legend -->
-            <div class="grid grid-cols-4 gap-2 text-center text-[10px] text-gray-400 bg-black/40 p-2 rounded-xl border border-gray-800">
-                <div><span class="text-pink-400 font-bold block">🎵 Notas</span>Comer</div>
-                <div><span class="text-yellow-400 font-bold block">🧲 Imán</span>Atracción</div>
-                <div><span class="text-blue-400 font-bold block">🛡️ Escudo</span>Protección</div>
-                <div><span class="text-purple-400 font-bold block">⚡ Furia</span>X2 Puntos</div>
-            </div>
-
-            <!-- Start Button -->
-            <button id="startBtn" class="glass-button w-full py-4 rounded-2xl text-xl font-orbitron font-black text-white uppercase tracking-widest mt-1 flex items-center justify-center gap-2">
-                <i class="fa-solid fa-play"></i> ¡Comenzar Carrera!
-            </button>
-        </div>
+    <!-- Barra de Modo Furia -->
+    <div class="w-1/3 max-w-xs flex flex-col items-center">
+      <div class="text-xs text-purple-300 font-semibold mb-1 tracking-wider">MODO FURIA</div>
+      <div class="w-full bg-gray-900 border border-purple-500/50 rounded-full h-3 overflow-hidden p-0.5">
+        <div id="frenzyBar" class="bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 h-full w-0% rounded-full transition-all duration-200"></div>
+      </div>
     </div>
 
-    <!-- Pause Menu Overlay -->
-    <div id="pauseMenu" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
-        <div class="glass-panel w-full max-w-md p-6 sm:p-8 rounded-3xl flex flex-col gap-5 text-center border-red-500/40">
-            <h2 class="text-3xl font-orbitron font-extrabold text-white tracking-wider neon-text-red">
-                JUEGO PAUSADO
-            </h2>
-
-            <div class="flex flex-col gap-3">
-                <button id="resumeBtn" class="glass-button py-3.5 rounded-xl font-bold text-white uppercase tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-play"></i> Reanudar
-                </button>
-                <button id="restartBtn" class="glass-panel py-3.5 rounded-xl font-bold text-gray-200 hover:bg-red-500/20 border border-red-500/40 transition uppercase tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-rotate-right"></i> Reiniciar
-                </button>
-                <button id="toMenuBtn" class="glass-panel py-3.5 rounded-xl font-bold text-gray-300 hover:bg-gray-800 border border-gray-700 transition uppercase tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-sliders"></i> Cambiar Canción / Menú
-                </button>
-            </div>
-        </div>
+    <!-- Controles HUD -->
+    <div class="flex gap-2 pointer-events-auto">
+      <button id="pauseBtn" class="bg-pink-600 hover:bg-pink-500 text-white p-3 rounded-xl shadow-lg transition active:scale-95 border border-pink-400/40">
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
     </div>
+  </div>
 
-    <!-- Game Over Overlay -->
-    <div id="gameOverMenu" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg hidden">
-        <div class="glass-panel w-full max-w-md p-6 sm:p-8 rounded-3xl flex flex-col gap-5 text-center border-red-600/60 relative overflow-hidden">
-            <h2 class="text-4xl font-orbitron font-black text-red-500 neon-text-red tracking-wider">
-                FIN DE LA CARRERA
-            </h2>
+  <!-- MENÚ PRINCIPAL -->
+  <div id="mainMenu" class="absolute inset-0 flex items-center justify-center p-4 z-20 transition-all duration-500">
+    <div class="cyber-card p-6 md:p-8 rounded-3xl max-w-md w-full flex flex-col gap-5">
+      <div class="text-center">
+        <h1 class="text-3xl md:text-4xl font-black italic tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-400 to-cyan-400 glow-text">
+          BEAT SURFER
+        </h1>
+        <p class="text-xs text-gray-400 mt-1">¡Devora notas al ritmo de cualquier canción!</p>
+      </div>
 
-            <div class="glass-panel p-4 rounded-2xl flex flex-col gap-3 border border-gray-700">
-                <div class="flex justify-between items-center">
-                    <span class="text-xs uppercase text-gray-400 font-bold">Puntuación Total:</span>
-                    <span id="finalScore" class="text-2xl font-orbitron font-extrabold text-white">0</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xs uppercase text-gray-400 font-bold">Máximo Combo:</span>
-                    <span id="finalCombo" class="text-2xl font-orbitron font-extrabold text-purple-400">0x</span>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-3">
-                <button id="retryBtn" class="glass-button py-3.5 rounded-xl font-bold text-white uppercase tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-arrow-rotate-right"></i> Reintentar
-                </button>
-                <button id="goMenuBtn" class="glass-panel py-3.5 rounded-xl font-bold text-gray-300 hover:bg-gray-800 border border-gray-700 transition uppercase tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-house"></i> Menú Principal
-                </button>
-            </div>
+      <!-- Selección de Canción -->
+      <div class="flex flex-col gap-3">
+        <label class="text-xs font-bold uppercase tracking-wider text-pink-400">1. Elige tu música</label>
+        
+        <!-- Opción YouTube -->
+        <div class="relative">
+          <input type="text" id="ytUrlInput" placeholder="Pega link de YouTube o ID de video" 
+                 class="w-full bg-black/60 border border-purple-500/40 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-500 text-white placeholder-gray-500">
         </div>
+
+        <div class="text-center text-xs text-gray-500 font-bold">- O TAMBIÉN -</div>
+
+        <!-- Opción Archivo Local -->
+        <label class="cursor-pointer bg-purple-950/40 hover:bg-purple-900/50 border border-dashed border-purple-500/50 rounded-xl p-3 text-center transition group">
+          <span class="text-xs text-purple-300 group-hover:text-pink-300 font-medium block">📁 Subir MP3 / WAV local</span>
+          <input type="file" id="fileInput" accept="audio/*" class="hidden">
+        </label>
+        
+        <div id="selectedSongName" class="text-xs text-cyan-400 truncate text-center font-mono hidden"></div>
+      </div>
+
+      <!-- Selector de Dificultad -->
+      <div class="flex flex-col gap-2">
+        <label class="text-xs font-bold uppercase tracking-wider text-pink-400">2. Dificultad</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button data-diff="easy" class="diff-btn bg-black/40 border border-gray-700 hover:border-pink-500 py-2 rounded-xl text-xs font-bold transition">FÁCIL</button>
+          <button data-diff="normal" class="diff-btn bg-pink-600 border border-pink-400 py-2 rounded-xl text-xs font-bold transition shadow-lg shadow-pink-600/30">NORMAL</button>
+          <button data-diff="hard" class="diff-btn bg-black/40 border border-gray-700 hover:border-pink-500 py-2 rounded-xl text-xs font-bold transition">DIFÍCIL</button>
+        </div>
+      </div>
+
+      <!-- Botón Iniciar -->
+      <button id="startBtn" class="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-extrabold py-3.5 rounded-xl shadow-xl shadow-pink-500/25 transition active:scale-95 text-sm uppercase tracking-wider mt-2">
+        ¡Cargar y Jugar!
+      </button>
+
+      <div id="statusMessage" class="text-xs text-center text-yellow-400 font-mono hidden">Cargando y procesando audio...</div>
     </div>
+  </div>
 
-    <!-- Game Engine Logic -->
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+  <!-- MENÚ DE PAUSA -->
+  <div id="pauseMenu" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-30">
+    <div class="cyber-card p-6 rounded-3xl max-w-xs w-full flex flex-col gap-4 text-center">
+      <h2 class="text-2xl font-black tracking-widest text-pink-500">PAUSA</h2>
+      
+      <button id="resumeBtn" class="w-full bg-pink-600 hover:bg-pink-500 py-3 rounded-xl font-bold text-sm transition">Reanudar</button>
+      <button id="restartBtn" class="w-full bg-purple-800 hover:bg-purple-700 py-3 rounded-xl font-bold text-sm transition">Reiniciar</button>
+      <button id="changeSongBtn" class="w-full bg-gray-800 hover:bg-gray-700 py-3 rounded-xl font-bold text-sm transition text-gray-300">Cambiar Canción / Menú</button>
+    </div>
+  </div>
 
-        // UI Binding
-        const mainMenu = document.getElementById('mainMenu');
-        const pauseMenu = document.getElementById('pauseMenu');
-        const gameOverMenu = document.getElementById('gameOverMenu');
-        const hudOverlay = document.getElementById('hudOverlay');
-        const hudScore = document.getElementById('hudScore');
-        const hudCombo = document.getElementById('hudCombo');
-        const frenzyBar = document.getElementById('frenzyBar');
-        const frenzyPercent = document.getElementById('frenzyPercent');
-        const buffContainer = document.getElementById('buffContainer');
+  <script>
+    // --- ESTADO Y CONFIGURACIÓN DEL JUEGO ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
-        const pauseBtn = document.getElementById('pauseBtn');
-        const startBtn = document.getElementById('startBtn');
-        const resumeBtn = document.getElementById('resumeBtn');
-        const restartBtn = document.getElementById('restartBtn');
-        const toMenuBtn = document.getElementById('toMenuBtn');
-        const retryBtn = document.getElementById('retryBtn');
-        const goMenuBtn = document.getElementById('goMenuBtn');
+    let audioCtx, analyser, audioSource, audioBuffer, audioNode;
+    let audioPlaying = false;
+    let gameState = 'MENU'; // MENU, PLAYING, PAUSED
+    let selectedDifficulty = 'normal';
+    
+    let score = 0;
+    let combo = 0;
+    let frenzyMeter = 0;
+    let isFrenzy = false;
+    let frenzyTimer = 0;
 
-        const audioFileInput = document.getElementById('audioFileInput');
-        const songUrlInput = document.getElementById('songUrlInput');
-        const loadUrlBtn = document.getElementById('loadUrlBtn');
-        const selectDemoBtn = document.getElementById('selectDemoBtn');
-        const fileUploadLabel = document.getElementById('fileUploadLabel');
-        const demoBadge = document.getElementById('demoBadge');
-        const diffBtns = document.querySelectorAll('.diff-btn');
+    // Configuración de carriles y perspectiva
+    const LNS = [-1.8, 0, 1.8]; // Posiciones X de carriles
+    let currentLane = 1; // 0: Izq, 1: Centro, 2: Der
+    
+    // Físicas del Monstruo
+    const monster = {
+      x: 0,
+      y: 0,
+      z: 3, // Posición Z fija en frente
+      lane: 1,
+      targetX: 0,
+      jumpY: 0,
+      vy: 0,
+      isJumping: false,
+      isSliding: false,
+      slideTimer: 0,
+      mouthOpen: 0,
+      squishX: 1,
+      squishY: 1,
+      leanAngle: 0,
+      shield: false
+    };
 
-        const mobileLeft = document.getElementById('mobileLeft');
-        const mobileRight = document.getElementById('mobileRight');
-        const mobileUp = document.getElementById('mobileUp');
-        const mobileDown = document.getElementById('mobileDown');
+    // Colección de notas, obstáculos y partículas
+    let notes = [];
+    let obstacles = [];
+    let powerups = [];
+    let particles = [];
 
-        // Game State Variables
-        let gameState = 'MENU';
-        let currentLane = 1; // 0: Left, 1: Center, 2: Right
-        let targetLaneX = 0;
-        let playerX = 0;
-        let playerYOffset = 0; // Vertical offset for jump/slide
-        let playerHeightScale = 1.0; // Squish scale for sliding
-        let leanAngle = 0; // Tilt angle when moving lanes
+    // Ajustes de dificultad
+    const diffSettings = {
+      easy: { speed: 18, threshold: 210, spawnRate: 350 },
+      normal: { speed: 25, threshold: 180, spawnRate: 250 },
+      hard: { speed: 34, threshold: 150, spawnRate: 180 }
+    };
 
-        // Jump & Slide Physics
-        let isJumping = false;
-        let jumpVelocity = 0;
-        let isSliding = false;
-        let slideTimer = 0;
+    let lastSpawnTime = 0;
 
-        // Player Stats & Combo
-        let score = 0;
-        let combo = 0;
-        let maxCombo = 0;
-        let frenzyMeter = 0; // 0 to 100
-        let isFrenzyActive = false;
-        let frenzyTimer = 0;
+    // --- RECALCULADO DE TAMAÑO DE PANTALLA ---
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
 
-        // Active Power-ups
-        let hasShield = false;
-        let magnetTimer = 0;
+    // --- MANEJO DE AUDIO (YOUTUBE & MP3 LOCAL) ---
+    const fileInput = document.getElementById('fileInput');
+    const ytUrlInput = document.getElementById('ytUrlInput');
+    const selectedSongName = document.getElementById('selectedSongName');
+    const statusMessage = document.getElementById('statusMessage');
 
-        // Difficulty Config
-        let difficulty = 'medium';
-        let diffConfig = {
-            easy: { threshold: 210, speed: 0.014, cooldown: 18, obstacleFreq: 0.15 },
-            medium: { threshold: 190, speed: 0.020, cooldown: 12, obstacleFreq: 0.25 },
-            hard: { threshold: 170, speed: 0.026, cooldown: 8, obstacleFreq: 0.35 }
-        };
+    let localAudioFile = null;
 
-        // Monster Animation Timers
-        let biteAnimation = 0;
-        let blinkTimer = 0;
-        let isBlinking = false;
-        let pulseBeatScale = 1.0;
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        localAudioFile = e.target.files[0];
+        ytUrlInput.value = '';
+        selectedSongName.innerText = "🎵 Archivo: " + localAudioFile.name;
+        selectedSongName.classList.remove('hidden');
+      }
+    });
 
-        // Web Audio Variables
-        let audioCtx = null;
-        let analyser = null;
-        let audioSource = null;
-        let audioElement = null;
-        let synthInterval = null;
-        let isUsingDemo = true;
-        let beatCooldown = 0;
+    ytUrlInput.addEventListener('input', () => {
+      if (ytUrlInput.value.trim() !== '') {
+        localAudioFile = null;
+        fileInput.value = '';
+        selectedSongName.classList.add('hidden');
+      }
+    });
 
-        // Track Entities
-        let entities = []; // Notes, Power-ups & Obstacles
-        let particles = [];
-        let gameTime = 0;
+    // Función para obtener URL de audio limpia de enlaces de YouTube vía proxies públicos
+    async function resolveYouTubeAudioUrl(input) {
+      let videoId = input.trim();
+      const match = videoId.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      if (match) videoId = match[1];
 
-        // Resize Canvas
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+      // Proxies con fallback
+      const apiEndpoints = [
+        `https://api.puredownloader.com/api/yt?id=${videoId}`,
+        `https://cobalt-api.kwiatek.xyz/`
+      ];
+
+      try {
+        // Intento directo con Piped / Invidious API pública
+        const res = await fetch(`https://pipedapi.kavin.rocks/streams/${videoId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const audioStream = data.audioStreams.find(s => s.mimeType.includes('audio/mp4') || s.mimeType.includes('audio/webm'));
+          if (audioStream) return audioStream.url;
         }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+      } catch (e) {
+        console.warn("Proxy 1 fallo, intentando método de audio directo...");
+      }
 
-        // Initialize Audio Context
-        function initAudioContext() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+      // Servidor fallback de respaldo de audio directo
+      return `https://my-youtube-proxy.workers.dev/stream?id=${videoId}`;
+    }
+
+    async function prepareAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+
+      statusMessage.classList.remove('hidden');
+
+      if (localAudioFile) {
+        statusMessage.innerText = "Procesando archivo local...";
+        const arrayBuffer = await localAudioFile.arrayBuffer();
+        audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        setupAudioBufferSource();
+      } else if (ytUrlInput.value.trim() !== '') {
+        statusMessage.innerText = "Extrayendo audio de YouTube...";
+        try {
+          const streamUrl = await resolveYouTubeAudioUrl(ytUrlInput.value);
+          setupAudioElementSource(streamUrl);
+        } catch (err) {
+          alert("No se pudo cargar el audio de YouTube. Prueba con otra canción o archivo MP3.");
+          statusMessage.classList.add('hidden');
+          return false;
+        }
+      } else {
+        // Pista Synthwave automática de respaldo
+        statusMessage.innerText = "Generando synthwave de fondo...";
+        createSynthTrack();
+      }
+
+      statusMessage.classList.add('hidden');
+      return true;
+    }
+
+    function setupAudioBufferSource() {
+      if (audioNode) audioNode.stop();
+      audioNode = audioCtx.createBufferSource();
+      audioNode.buffer = audioBuffer;
+      audioNode.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+
+    function setupAudioElementSource(url) {
+      const audio = new Audio();
+      audio.crossOrigin = "anonymous";
+      audio.src = url;
+      audio.load();
+
+      if (audioSource) audioSource.disconnect();
+      audioSource = audioCtx.createMediaElementSource(audio);
+      audioSource.connect(analyser);
+      analyser.connect(audioCtx.destination);
+      audioNode = audio;
+    }
+
+    function createSynthTrack() {
+      // Audio autogenerado en caso de no proveer enlace
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(110, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      osc.connect(gain);
+      gain.connect(analyser);
+      analyser.connect(audioCtx.destination);
+      audioNode = osc;
+    }
+
+    // --- CONTROLES DE INTERFAZ Y SELECCIÓN DE DIFICULTAD ---
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.diff-btn').forEach(b => {
+          b.className = "diff-btn bg-black/40 border border-gray-700 hover:border-pink-500 py-2 rounded-xl text-xs font-bold transition";
+        });
+        e.target.className = "diff-btn bg-pink-600 border border-pink-400 py-2 rounded-xl text-xs font-bold transition shadow-lg shadow-pink-600/30";
+        selectedDifficulty = e.target.dataset.diff;
+      });
+    });
+
+    document.getElementById('startBtn').addEventListener('click', async () => {
+      const success = await prepareAudio();
+      if (success) {
+        document.getElementById('mainMenu').classList.add('opacity-0', 'pointer-events-none');
+        document.getElementById('hud').classList.remove('hidden');
+        startGame();
+      }
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', pauseGame);
+    document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+    document.getElementById('restartBtn').addEventListener('click', () => {
+      resumeGame();
+      startGame();
+    });
+    document.getElementById('changeSongBtn').addEventListener('click', () => {
+      pauseGame();
+      document.getElementById('pauseMenu').classList.add('hidden');
+      document.getElementById('mainMenu').classList.remove('opacity-0', 'pointer-events-none');
+      document.getElementById('hud').classList.add('hidden');
+      gameState = 'MENU';
+    });
+
+    function startGame() {
+      notes = [];
+      obstacles = [];
+      powerups = [];
+      particles = [];
+      score = 0;
+      combo = 0;
+      frenzyMeter = 0;
+      isFrenzy = false;
+      monster.lane = 1;
+      monster.shield = false;
+      updateScoreUI();
+
+      if (audioNode) {
+        if (audioNode.start) audioNode.start(0);
+        else if (audioNode.play) audioNode.play();
+      }
+      audioPlaying = true;
+      gameState = 'PLAYING';
+    }
+
+    function pauseGame() {
+      if (gameState !== 'PLAYING') return;
+      gameState = 'PAUSED';
+      if (audioNode && audioNode.pause) audioNode.pause();
+      document.getElementById('pauseMenu').classList.remove('hidden');
+    }
+
+    function resumeGame() {
+      if (gameState !== 'PAUSED') return;
+      gameState = 'PLAYING';
+      if (audioNode && audioNode.play) audioNode.play();
+      document.getElementById('pauseMenu').classList.add('hidden');
+    }
+
+    // --- CONTROLES DE JUGABILIDAD (TECLADO Y SWIPE) ---
+    window.addEventListener('keydown', (e) => {
+      if (gameState !== 'PLAYING') return;
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLane(-1);
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveLane(1);
+      if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') && !monster.isJumping) jump();
+      if ((e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') && !monster.isSliding) slide();
+    });
+
+    let touchStartX = 0, touchStartY = 0;
+    window.addEventListener('touchstart', e => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
+
+    window.addEventListener('touchend', e => {
+      if (gameState !== 'PLAYING') return;
+      let dx = e.changedTouches[0].clientX - touchStartX;
+      let dy = e.changedTouches[0].clientY - touchStartY;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 30) moveLane(1);
+        else if (dx < -30) moveLane(-1);
+      } else {
+        if (dy < -30 && !monster.isJumping) jump();
+        else if (dy > 30 && !monster.isSliding) slide();
+      }
+    });
+
+    function moveLane(dir) {
+      monster.lane = Math.max(0, Math.min(2, monster.lane + dir));
+      monster.leanAngle = dir * 0.25;
+    }
+
+    function jump() {
+      monster.isJumping = true;
+      monster.vy = -12;
+      monster.squishY = 1.3;
+      monster.squishX = 0.8;
+    }
+
+    function slide() {
+      monster.isSliding = true;
+      monster.slideTimer = 35;
+      monster.squishY = 0.5;
+      monster.squishX = 1.4;
+    }
+
+    // --- BUCLE PRINCIPAL Y LÓGICA DE DETECCIÓN RÍTMICA ---
+    function update() {
+      if (gameState === 'PLAYING') {
+        const cfg = diffSettings[selectedDifficulty];
+
+        // Detección de bajos/ritmo con Web Audio
+        let bass = 0;
+        if (analyser) {
+          const data = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(data);
+          let sum = 0;
+          for (let i = 0; i < 8; i++) sum += data[i];
+          bass = sum / 8;
         }
 
-        // Demo Synth Track Generator
-        function createDemoSynthTrack() {
-            if (synthInterval) clearInterval(synthInterval);
-            let beatStep = 0;
-            const tempo = difficulty === 'easy' ? 380 : difficulty === 'medium' ? 280 : 200;
+        // Generar elementos sincronizados
+        const now = Date.now();
+        if (bass > cfg.threshold && now - lastSpawnTime > cfg.spawnRate) {
+          spawnBeatElement();
+          lastSpawnTime = now;
+        }
 
-            synthInterval = setInterval(() => {
-                if (gameState !== 'PLAYING' || !isUsingDemo || !audioCtx) return;
+        // Actualizar físicas del monstruo
+        monster.targetX = LNS[monster.lane];
+        monster.x += (monster.targetX - monster.x) * 0.2;
+        monster.leanAngle *= 0.85;
 
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
+        if (monster.isJumping) {
+          monster.jumpY += monster.vy;
+          monster.vy += 0.8; // Gravedad
+          if (monster.jumpY >= 0) {
+            monster.jumpY = 0;
+            monster.isJumping = false;
+            monster.squishY = 0.7;
+            monster.squishX = 1.3;
+          }
+        }
 
-                if (analyser) osc.connect(analyser);
+        if (monster.isSliding) {
+          monster.slideTimer--;
+          if (monster.slideTimer <= 0) monster.isSliding = false;
+        }
 
-                const now = audioCtx.currentTime;
+        // Deformación elástica suave
+        monster.squishX += (1 - monster.squishX) * 0.1;
+        monster.squishY += (1 - monster.squishY) * 0.1;
+        if (monster.mouthOpen > 0) monster.mouthOpen -= 0.08;
 
-                if (beatStep % 4 === 0) {
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(160, now);
-                    osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.18);
-                    gain.gain.setValueAtTime(1.0, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-                } else if (beatStep % 2 === 0) {
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(280, now);
-                    gain.gain.setValueAtTime(0.35, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        // Actualizar Objetos en pista
+        const speed = cfg.speed * 0.01;
+
+        // Notas
+        for (let i = notes.length - 1; i >= 0; i--) {
+          let n = notes[i];
+          n.z -= speed;
+
+          // Magnetismo si activa powerup
+          if (monster.magnet && n.z < 15) {
+            n.x += (monster.x - n.x) * 0.15;
+          }
+
+          // Colisión con el Monstruo
+          if (n.z <= monster.z + 0.5 && n.z >= monster.z - 0.5) {
+            if (Math.abs(n.x - monster.x) < 0.8 && Math.abs(monster.jumpY - n.y) < 1.2) {
+              eatNote(n);
+              notes.splice(i, 1);
+              continue;
+            }
+          }
+          if (n.z < 0) notes.splice(i, 1);
+        }
+
+        // Obstáculos
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          let obs = obstacles[i];
+          obs.z -= speed;
+
+          if (obs.z <= monster.z + 0.4 && obs.z >= monster.z - 0.4) {
+            if (Math.abs(obs.x - monster.x) < 0.7) {
+              let hit = false;
+              if (obs.type === 'HIGH' && !monster.isSliding) hit = true;
+              if (obs.type === 'LOW' && monster.jumpY > -1) hit = true;
+
+              if (hit) {
+                if (monster.shield) {
+                  monster.shield = false;
+                  createExplosion(monster.x, monster.jumpY, '#3b82f6');
                 } else {
-                    osc.type = 'sawtooth';
-                    const scale = [220, 261.63, 329.63, 392.00, 440.00];
-                    osc.frequency.setValueAtTime(scale[beatStep % scale.length], now);
-                    gain.gain.setValueAtTime(0.2, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                  hitObstacle();
                 }
-
-                osc.start(now);
-                osc.stop(now + 0.18);
-                beatStep = (beatStep + 1) % 16;
-            }, tempo);
+                obstacles.splice(i, 1);
+                continue;
+              }
+            }
+          }
+          if (obs.z < 0) obstacles.splice(i, 1);
         }
 
-        function setupAudioNodes(source) {
-            if (!analyser) {
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
-            }
-            source.connect(analyser);
-            analyser.connect(audioCtx.destination);
+        // Modo Furia
+        if (isFrenzy) {
+          frenzyTimer--;
+          if (frenzyTimer <= 0) {
+            isFrenzy = false;
+          }
         }
-
-        function loadAudioFromUrl(url) {
-            initAudioContext();
-            if (audioElement) audioElement.pause();
-            
-            audioElement = new Audio();
-            audioElement.crossOrigin = "anonymous";
-            audioElement.src = url;
-
-            audioElement.onended = () => { triggerGameOver(); };
-            audioSource = audioCtx.createMediaElementSource(audioElement);
-            setupAudioNodes(audioSource);
-            isUsingDemo = false;
-            demoBadge.classList.add('hidden');
-        }
-
-        // Beat Detection & Entity Spawning Logic
-        function updateBeatDetection() {
-            if (!analyser) return;
-
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            analyser.getByteFrequencyData(dataArray);
-
-            let bassSum = 0;
-            for (let i = 0; i < 12; i++) bassSum += dataArray[i];
-            const bassAvg = bassSum / 12;
-
-            pulseBeatScale = 1.0 + (bassAvg / 255) * 0.15;
-
-            const config = diffConfig[difficulty];
-
-            if (beatCooldown > 0) {
-                beatCooldown--;
-            } else if (bassAvg > config.threshold) {
-                spawnEntity();
-                beatCooldown = config.cooldown;
-            }
-        }
-
-        function spawnEntity() {
-            const lane = Math.floor(Math.random() * 3);
-            const rand = Math.random();
-            const config = diffConfig[difficulty];
-
-            let type = 'NOTE';
-
-            // Power-up or Obstacle Spawning Probability
-            if (rand < config.obstacleFreq) {
-                // High Obstacle (Jump required) or Low Obstacle (Slide required)
-                type = Math.random() > 0.5 ? 'OBSTACLE_HIGH' : 'OBSTACLE_LOW';
-            } else if (rand > 0.88) {
-                const pRand = Math.random();
-                if (pRand < 0.4) type = 'MAGNET';
-                else if (pRand < 0.7) type = 'SHIELD';
-                else type = 'FRENZY';
-            }
-
-            entities.push({
-                lane: lane,
-                z: 0.0,
-                type: type,
-                collected: false
-            });
-        }
-
-        // Sound FX Generators
-        function playSoundFX(type) {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            const now = audioCtx.currentTime;
-
-            if (type === 'chomp') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(350, now);
-                osc.frequency.exponentialRampToValueAtTime(60, now + 0.1);
-                gain.gain.setValueAtTime(0.4, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-            } else if (type === 'powerup') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-            } else if (type === 'hit') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(120, now);
-                osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
-                gain.gain.setValueAtTime(0.5, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-            }
-
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now);
-            osc.stop(now + 0.25);
-        }
-
-        function spawnParticles(x, y, color, count = 18) {
-            for (let i = 0; i < count; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 7 + 2;
-                particles.push({
-                    x: x,
-                    y: y,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    life: 1.0,
-                    size: Math.random() * 6 + 3,
-                    color: color
-                });
-            }
-        }
-
-        // High-Fidelity Character Rendering with Eyes Tracking, Lean, Jump, and Bite FX
-        function drawMonster(x, y, radius, mouthOpenAmount, tiltAngle, nearestTarget) {
-            ctx.save();
-            ctx.translate(x, y + playerYOffset);
-            ctx.rotate(tiltAngle);
-            ctx.scale(pulseBeatScale, pulseBeatScale * playerHeightScale);
-
-            // Audio Frenzy Aura Effect
-            if (isFrenzyActive) {
-                ctx.beginPath();
-                ctx.arc(0, 0, radius * 1.35, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(168, 85, 247, 0.35)';
-                ctx.fill();
-            }
-
-            // Shield Shielding Barrier
-            if (hasShield) {
-                ctx.beginPath();
-                ctx.arc(0, 0, radius * 1.45, 0, Math.PI * 2);
-                ctx.strokeStyle = '#3b82f6';
-                ctx.lineWidth = 4;
-                ctx.shadowColor = '#3b82f6';
-                ctx.shadowBlur = 12;
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-            }
-
-            // Outer Black Body Shell
-            ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#0a0a0d';
-            ctx.fill();
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = isFrenzyActive ? '#c084fc' : '#271933';
-            ctx.stroke();
-
-            // Inner Red Mouth
-            ctx.beginPath();
-            const mouthWidth = radius * 1.5;
-            const mouthHeight = radius * (0.55 + mouthOpenAmount * 0.45);
-            ctx.ellipse(0, radius * 0.1, mouthWidth / 2, mouthHeight / 2, 0, 0, Math.PI * 2);
-            ctx.fillStyle = isFrenzyActive ? '#dc2626' : '#991b1b';
-            ctx.fill();
-
-            // Teeth Rendering
-            ctx.beginPath();
-            const teethCount = 7;
-            const startX = -mouthWidth / 2 + 6;
-            const stepX = (mouthWidth - 12) / teethCount;
-
-            // Top Teeth
-            for (let i = 0; i <= teethCount; i++) {
-                const tx = startX + i * stepX;
-                const ty = -mouthHeight / 2 + radius * 0.1;
-                if (i === 0) ctx.moveTo(tx, ty);
-                else {
-                    const midX = tx - stepX / 2;
-                    const toothTipY = ty + mouthHeight * 0.45;
-                    ctx.lineTo(midX, toothTipY);
-                    ctx.lineTo(tx, ty);
-                }
-            }
-            // Bottom Teeth
-            for (let i = teethCount; i >= 0; i--) {
-                const tx = startX + i * stepX;
-                const ty = mouthHeight / 2 + radius * 0.1;
-                const midX = tx - stepX / 2;
-                const toothTipY = ty - mouthHeight * 0.45;
-                ctx.lineTo(midX, toothTipY);
-                ctx.lineTo(tx, ty);
-            }
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-
-            // Pupil Eye Target Tracking Calculation
-            let pupilOffsetX = 0;
-            let pupilOffsetY = 0;
-
-            if (nearestTarget) {
-                const dx = nearestTarget.x - x;
-                const dy = nearestTarget.y - (y + playerYOffset);
-                const dist = Math.hypot(dx, dy);
-                if (dist > 0) {
-                    pupilOffsetX = (dx / dist) * 5;
-                    pupilOffsetY = (dy / dist) * 4;
-                }
-            }
-
-            // Blinking timer check
-            blinkTimer++;
-            if (blinkTimer > 180) {
-                isBlinking = true;
-                if (blinkTimer > 192) {
-                    isBlinking = false;
-                    blinkTimer = 0;
-                }
-            }
-
-            // Left Eye & Pupil
-            ctx.beginPath();
-            if (isBlinking) {
-                ctx.ellipse(-radius * 0.45, -radius * 0.45, radius * 0.35, 2, 0, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-            } else {
-                ctx.ellipse(-radius * 0.45, -radius * 0.45, radius * 0.35, radius * 0.4, -0.15, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.arc(-radius * 0.4 + pupilOffsetX, -radius * 0.45 + pupilOffsetY, radius * 0.12, 0, Math.PI * 2);
-                ctx.fillStyle = '#000000';
-                ctx.fill();
-            }
-
-            // Right Eye & Pupil
-            ctx.beginPath();
-            if (isBlinking) {
-                ctx.ellipse(radius * 0.45, -radius * 0.45, radius * 0.35, 2, 0, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-            } else {
-                ctx.ellipse(radius * 0.45, -radius * 0.45, radius * 0.35, radius * 0.4, 0.15, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.arc(radius * 0.4 + pupilOffsetX, -radius * 0.45 + pupilOffsetY, radius * 0.12, 0, Math.PI * 2);
-                ctx.fillStyle = '#000000';
-                ctx.fill();
-            }
-
-            ctx.restore();
-        }
-
-        // Perspective Projections
-        function getLaneX(lane, perspective) {
-            const vanishingX = canvas.width / 2;
-            const laneWidthFar = canvas.width * 0.08;
-            const laneWidthNear = canvas.width * 0.28;
-            const currentLaneWidth = laneWidthFar + (laneWidthNear - laneWidthFar) * perspective;
-            return vanishingX + (lane - 1) * currentLaneWidth;
-        }
-
-        function getPerspectiveY(z) {
-            const horizonY = canvas.height * 0.35;
-            const bottomY = canvas.height * 0.88;
-            return horizonY + (bottomY - horizonY) * z;
-        }
-
-        // Main Game Render Loop
-        function render() {
-            // Background
-            ctx.fillStyle = '#030206';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            const horizonY = canvas.height * 0.35;
-            const bottomY = canvas.height * 0.88;
-
-            // Perspective Grid Lines
-            ctx.strokeStyle = isFrenzyActive ? 'rgba(168, 85, 247, 0.4)' : 'rgba(239, 68, 68, 0.25)';
-            ctx.lineWidth = 2;
-
-            for (let l = -0.5; l <= 2.5; l += 1.0) {
-                const xFar = getLaneX(l, 0);
-                const xNear = getLaneX(l, 1);
-                ctx.beginPath();
-                ctx.moveTo(xFar, horizonY);
-                ctx.lineTo(xNear, bottomY);
-                ctx.stroke();
-            }
-
-            // Horizon Neon Line
-            ctx.strokeStyle = isFrenzyActive ? '#a855f7' : '#ef4444';
-            ctx.lineWidth = 3;
-            ctx.shadowColor = isFrenzyActive ? '#a855f7' : '#ef4444';
-            ctx.shadowBlur = 15;
-            ctx.beginPath();
-            ctx.moveTo(0, horizonY);
-            ctx.lineTo(canvas.width, horizonY);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // Grid motion lines
-            gameTime += diffConfig[difficulty].speed;
-            const gridOffset = (gameTime * 4) % 1;
-            ctx.strokeStyle = 'rgba(239, 68, 68, 0.15)';
-            ctx.lineWidth = 1.5;
-            for (let z = gridOffset; z <= 1.0; z += 0.1) {
-                const y = getPerspectiveY(z);
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
-            }
-
-            // Jump & Slide Physics Logic
-            if (isJumping) {
-                playerYOffset += jumpVelocity;
-                jumpVelocity += 1.2; // Gravity
-                if (playerYOffset >= 0) {
-                    playerYOffset = 0;
-                    isJumping = false;
-                }
-            }
-
-            if (isSliding) {
-                slideTimer--;
-                playerHeightScale = 0.55; // Squish monster flat
-                if (slideTimer <= 0) {
-                    isSliding = false;
-                    playerHeightScale = 1.0;
-                }
-            }
-
-            // Magnet & Frenzy Timers
-            if (magnetTimer > 0) magnetTimer--;
-            if (frenzyTimer > 0) {
-                frenzyTimer--;
-                if (frenzyTimer <= 0) {
-                    isFrenzyActive = false;
-                    frenzyBar.classList.remove('bg-purple-500');
-                }
-            }
-
-            // Smooth Lane Movement & Leaning
-            const hitZoneZ = 0.88;
-            targetLaneX = getLaneX(currentLane, hitZoneZ);
-            const moveDelta = targetLaneX - playerX;
-            playerX += moveDelta * 0.25;
-            leanAngle = moveDelta * 0.003; // Smooth lean tilt
-
-            const playerY = getPerspectiveY(hitZoneZ);
-            let nearestIncomingEntity = null;
-            let minDist = Infinity;
-
-            // Render Entities (Notes, Powerups, Obstacles)
-            const speed = diffConfig[difficulty].speed;
-
-            for (let i = entities.length - 1; i >= 0; i--) {
-                const item = entities[i];
-                if (gameState === 'PLAYING') {
-                    item.z += speed;
-                }
-
-                // Magnet attraction mechanics
-                if (magnetTimer > 0 && item.type === 'NOTE' && item.z > 0.4 && item.z < 0.95) {
-                    item.lane += (currentLane - item.lane) * 0.1;
-                }
-
-                const itemX = getLaneX(item.lane, item.z);
-                const itemY = getPerspectiveY(item.z);
-                const itemScale = 0.3 + item.z * 1.1;
-                const radius = 18 * itemScale;
-
-                // Track nearest incoming target for Monster's eyes
-                if (!item.collected && item.z > 0.2 && item.z < hitZoneZ) {
-                    const d = Math.hypot(itemX - playerX, itemY - playerY);
-                    if (d < minDist) {
-                        minDist = d;
-                        nearestIncomingEntity = { x: itemX, y: itemY };
-                    }
-                }
-
-                // Collision Detection Logic
-                if (!item.collected && item.z >= (hitZoneZ - 0.08) && item.z <= (hitZoneZ + 0.08)) {
-                    const inSameLane = Math.abs(item.lane - currentLane) < 0.4;
-
-                    if (inSameLane) {
-                        // OBSTACLES
-                        if (item.type === 'OBSTACLE_HIGH') {
-                            // Requires Slide (Low monster height)
-                            if (!isSliding) {
-                                handleBadHit(item);
-                            }
-                        } else if (item.type === 'OBSTACLE_LOW') {
-                            // Requires Jump (Negative Y offset)
-                            if (playerYOffset > -20) {
-                                handleBadHit(item);
-                            }
-                        } 
-                        // POWER-UPS & NOTES
-                        else {
-                            item.collected = true;
-                            if (item.type === 'NOTE') {
-                                const pts = 100 * (isFrenzyActive ? 2 : 1) * (1 + Math.floor(combo / 10) * 0.5);
-                                score += pts;
-                                combo++;
-                                if (combo > maxCombo) maxCombo = combo;
-
-                                // Charge Frenzy Meter
-                                if (!isFrenzyActive) {
-                                    frenzyMeter = Math.min(100, frenzyMeter + 8);
-                                    if (frenzyMeter >= 100) {
-                                        activateFrenzy();
-                                    }
-                                }
-
-                                biteAnimation = 1.0;
-                                playSoundFX('chomp');
-                                spawnParticles(itemX, itemY, '#ec4899');
-                            } else if (item.type === 'MAGNET') {
-                                magnetTimer = 300; // 5 seconds
-                                playSoundFX('powerup');
-                                spawnParticles(itemX, itemY, '#eab308');
-                            } else if (item.type === 'SHIELD') {
-                                hasShield = true;
-                                playSoundFX('powerup');
-                                spawnParticles(itemX, itemY, '#3b82f6');
-                            } else if (item.type === 'FRENZY') {
-                                activateFrenzy();
-                                playSoundFX('powerup');
-                                spawnParticles(itemX, itemY, '#a855f7');
-                            }
-
-                            updateHUD();
-                        }
-                    }
-                }
-
-                // Missed Note
-                if (!item.collected && item.type === 'NOTE' && item.z > (hitZoneZ + 0.12)) {
-                    item.collected = true;
-                    combo = 0;
-                    frenzyMeter = Math.max(0, frenzyMeter - 15);
-                    updateHUD();
-                }
-
-                // Render Entity Visuals
-                if (!item.collected && item.z <= 1.1) {
-                    ctx.save();
-                    ctx.translate(itemX, itemY);
-
-                    if (item.type === 'NOTE') {
-                        ctx.beginPath();
-                        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-                        ctx.fillStyle = '#ec4899';
-                        ctx.fill();
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(10, radius * 1.2)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf001', 0, 0);
-                    } else if (item.type === 'MAGNET') {
-                        ctx.beginPath();
-                        ctx.arc(0, 0, radius * 1.1, 0, Math.PI * 2);
-                        ctx.fillStyle = '#eab308';
-                        ctx.fill();
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(10, radius)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf076', 0, 0);
-                    } else if (item.type === 'SHIELD') {
-                        ctx.beginPath();
-                        ctx.arc(0, 0, radius * 1.1, 0, Math.PI * 2);
-                        ctx.fillStyle = '#3b82f6';
-                        ctx.fill();
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(10, radius)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf3ed', 0, 0);
-                    } else if (item.type === 'FRENZY') {
-                        ctx.beginPath();
-                        ctx.arc(0, 0, radius * 1.1, 0, Math.PI * 2);
-                        ctx.fillStyle = '#a855f7';
-                        ctx.fill();
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(10, radius)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf0e7', 0, 0);
-                    } else if (item.type === 'OBSTACLE_HIGH') {
-                        // High Spiked Barricade (Requires Sliding)
-                        ctx.fillStyle = '#ef4444';
-                        ctx.fillRect(-radius * 1.5, -radius * 1.2, radius * 3, radius * 0.8);
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(8, radius * 0.7)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf078 DESLIZAR', 0, -radius * 0.8);
-                    } else if (item.type === 'OBSTACLE_LOW') {
-                        // Low Blade Barrier (Requires Jumping)
-                        ctx.fillStyle = '#dc2626';
-                        ctx.fillRect(-radius * 1.5, radius * 0.2, radius * 3, radius * 0.8);
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(8, radius * 0.7)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf077 SALTAR', 0, radius * 0.6);
-                    }
-
-                    ctx.restore();
-                }
-
-                // Remove Outdated
-                if (item.z > 1.2 || item.collected) {
-                    entities.splice(i, 1);
-                }
-            }
-
-            // Handle Bad Obstacle Collisions
-            function handleBadHit(item) {
-                item.collected = true;
-                playSoundFX('hit');
-
-                if (hasShield) {
-                    hasShield = false; // Consume shield protection
-                    spawnParticles(playerX, playerY, '#3b82f6', 25);
-                } else {
-                    combo = 0;
-                    frenzyMeter = 0;
-                    score = Math.max(0, score - 200);
-                    spawnParticles(playerX, playerY, '#ef4444', 30);
-                }
-                updateHUD();
-            }
-
-            // Render Particle Effects
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life -= 0.04;
-
-                if (p.life <= 0) {
-                    particles.splice(i, 1);
-                    continue;
-                }
-
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalAlpha = 1.0;
-            }
-
-            // Decay Mouth Bite Anim
-            if (biteAnimation > 0) biteAnimation -= 0.1;
-
-            // Draw Monster Player
-            drawMonster(playerX, playerY, 44, Math.max(0, biteAnimation), leanAngle, nearestIncomingEntity);
-
-            if (gameState === 'PLAYING') {
-                updateBeatDetection();
-            }
-
-            requestAnimationFrame(render);
-        }
-
-        // Active Frenzy Trigger
-        function activateFrenzy() {
-            isFrenzyActive = true;
-            frenzyMeter = 100;
-            frenzyTimer = 350; // ~6 seconds
-        }
-
-        // HUD Updating
-        function updateHUD() {
-            hudScore.textContent = Math.floor(score);
-            hudCombo.textContent = combo + 'x';
-            frenzyBar.style.width = frenzyMeter + '%';
-            frenzyPercent.textContent = Math.floor(frenzyMeter) + '%';
-
-            // Active Buff Badges UI
-            buffContainer.innerHTML = '';
-            if (hasShield) {
-                buffContainer.innerHTML += `<span class="bg-blue-600/80 text-white text-xs px-2.5 py-1 rounded-lg border border-blue-400"><i class="fa-solid fa-shield"></i></span>`;
-            }
-            if (magnetTimer > 0) {
-                buffContainer.innerHTML += `<span class="bg-yellow-600/80 text-white text-xs px-2.5 py-1 rounded-lg border border-yellow-400"><i class="fa-solid fa-magnet"></i></span>`;
-            }
-            if (isFrenzyActive) {
-                buffContainer.innerHTML += `<span class="bg-purple-600/80 text-white text-xs px-2.5 py-1 rounded-lg border border-purple-400 frenzy-glow"><i class="fa-solid fa-bolt"></i> 2X</span>`;
-            }
-        }
-
-        // Maneuvers (Jump & Slide)
-        function jump() {
-            if (gameState === 'PLAYING' && !isJumping) {
-                isJumping = true;
-                jumpVelocity = -16;
-            }
-        }
-
-        function slide() {
-            if (gameState === 'PLAYING' && !isSliding) {
-                isSliding = true;
-                slideTimer = 32; // Duration frames
-            }
-        }
-
-        function moveLeft() {
-            if (gameState === 'PLAYING' && currentLane > 0) currentLane--;
-        }
-
-        function moveRight() {
-            if (gameState === 'PLAYING' && currentLane < 2) currentLane++;
-        }
-
-        // Controls Event Listeners
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
-            else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
-            else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') jump();
-            else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') slide();
-            else if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') togglePause();
+      }
+
+      render(bass || 0);
+      requestAnimationFrame(update);
+    }
+
+    function spawnBeatElement() {
+      const lane = Math.floor(Math.random() * 3);
+      const rand = Math.random();
+
+      if (rand < 0.75) {
+        // Crear Nota Musical
+        notes.push({
+          x: LNS[lane],
+          y: 0,
+          z: 40,
+          color: isFrenzy ? '#ec4899' : (Math.random() > 0.5 ? '#a855f7' : '#06b6d4')
         });
+      } else {
+        // Crear Obstáculo
+        const isHigh = Math.random() > 0.5;
+        obstacles.push({
+          x: LNS[lane],
+          z: 40,
+          type: isHigh ? 'HIGH' : 'LOW'
+        });
+      }
+    }
 
-        // Touch Swipe Gestures Handling
-        let touchStartX = 0;
-        let touchStartY = 0;
-
-        window.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-
-        window.addEventListener('touchend', (e) => {
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            const dx = touchEndX - touchStartX;
-            const dy = touchEndY - touchStartY;
-
-            if (Math.abs(dx) > Math.abs(dy)) {
-                if (dx > 30) moveRight();
-                else if (dx < -30) moveLeft();
-            } else {
-                if (dy < -30) jump();
-                else if (dy > 30) slide();
-            }
-        }, { passive: true });
-
-        mobileLeft.addEventListener('click', moveLeft);
-        mobileRight.addEventListener('click', moveRight);
-        mobileUp.addEventListener('click', jump);
-        mobileDown.addEventListener('click', slide);
-
-        function startGame() {
-            initAudioContext();
-            entities = [];
-            particles = [];
-            score = 0;
-            combo = 0;
-            maxCombo = 0;
-            frenzyMeter = 0;
-            isFrenzyActive = false;
-            hasShield = false;
-            magnetTimer = 0;
-            currentLane = 1;
-            playerX = getLaneX(1, 0.88);
-
-            updateHUD();
-
-            mainMenu.classList.add('hidden');
-            pauseMenu.classList.add('hidden');
-            gameOverMenu.classList.add('hidden');
-            hudOverlay.classList.remove('hidden');
-
-            gameState = 'PLAYING';
-
-            if (isUsingDemo) {
-                createDemoSynthTrack();
-            } else if (audioElement) {
-                audioElement.currentTime = 0;
-                audioElement.play();
-            }
+    function eatNote(note) {
+      combo++;
+      monster.mouthOpen = 1.0;
+      score += 100 * (isFrenzy ? 2 : 1) * Math.min(combo, 5);
+      
+      if (!isFrenzy) {
+        frenzyMeter = Math.min(100, frenzyMeter + 5);
+        if (frenzyMeter >= 100) {
+          isFrenzy = true;
+          frenzyTimer = 300;
+          frenzyMeter = 0;
         }
+      }
 
-        function togglePause() {
-            if (gameState === 'PLAYING') {
-                gameState = 'PAUSED';
-                pauseMenu.classList.remove('hidden');
-                if (audioElement && !isUsingDemo) audioElement.pause();
-            } else if (gameState === 'PAUSED') {
-                gameState = 'PLAYING';
-                pauseMenu.classList.add('hidden');
-                if (audioElement && !isUsingDemo) audioElement.play();
-            }
-        }
+      createExplosion(note.x, note.y, note.color);
+      updateScoreUI();
+    }
 
-        function triggerGameOver() {
-            gameState = 'GAMEOVER';
-            if (synthInterval) clearInterval(synthInterval);
-            if (audioElement) audioElement.pause();
+    function hitObstacle() {
+      combo = 0;
+      frenzyMeter = 0;
+      monster.squishX = 1.6;
+      monster.squishY = 0.4;
+      createExplosion(monster.x, monster.jumpY, '#ef4444');
+      updateScoreUI();
+    }
 
-            hudOverlay.classList.add('hidden');
-            gameOverMenu.classList.remove('hidden');
-
-            document.getElementById('finalScore').textContent = Math.floor(score);
-            document.getElementById('finalCombo').textContent = maxCombo + 'x';
-        }
-
-        startBtn.addEventListener('click', startGame);
-        pauseBtn.addEventListener('click', togglePause);
-        resumeBtn.addEventListener('click', togglePause);
-        restartBtn.addEventListener('click', startGame);
-        retryBtn.addEventListener('click', startGame);
-
-        toMenuBtn.addEventListener('click', () => {
-            if (synthInterval) clearInterval(synthInterval);
-            if (audioElement) audioElement.pause();
-            gameState = 'MENU';
-            pauseMenu.classList.add('hidden');
-            hudOverlay.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
+    function createExplosion(x, y, color) {
+      for (let i = 0; i < 12; i++) {
+        particles.push({
+          x: x, y: y, z: monster.z,
+          vx: (Math.random() - 0.5) * 0.2,
+          vy: (Math.random() - 0.5) * 0.2,
+          vz: (Math.random() - 0.5) * 0.2,
+          color: color,
+          life: 1.0
         });
+      }
+    }
 
-        goMenuBtn.addEventListener('click', () => {
-            gameState = 'MENU';
-            gameOverMenu.classList.add('hidden');
-            hudOverlay.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
-        });
+    function updateScoreUI() {
+      document.getElementById('scoreDisplay').innerText = score;
+      const comboDisp = document.getElementById('comboDisplay');
+      if (combo > 1) {
+        comboDisp.innerText = combo + "x COMBO!";
+        comboDisp.classList.remove('opacity-0');
+      } else {
+        comboDisp.classList.add('opacity-0');
+      }
+      document.getElementById('frenzyBar').style.width = (isFrenzy ? (frenzyTimer/300)*100 : frenzyMeter) + '%';
+    }
 
-        diffBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                diffBtns.forEach(b => {
-                    b.classList.remove('border-red-500', 'bg-red-500/20', 'text-white');
-                    b.classList.add('border-gray-700', 'text-gray-400');
-                });
-                btn.classList.remove('border-gray-700', 'text-gray-400');
-                btn.classList.add('border-red-500', 'bg-red-500/20', 'text-white');
-                difficulty = btn.dataset.diff;
-            });
-        });
+    // --- RENDERING Y PERSPECTIVA ---
+    function project(x, y, z) {
+      const fov = 350;
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2 + 100;
+      const scale = fov / (fov + z * 20);
+      return {
+        px: cx + x * 120 * scale,
+        py: cy + (y - 40) * scale,
+        scale: scale
+      };
+    }
 
-        audioFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                fileUploadLabel.textContent = file.name;
-                loadAudioFromUrl(URL.createObjectURL(file));
-            }
-        });
+    function render(bass) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        loadUrlBtn.addEventListener('click', () => {
-            const url = songUrlInput.value.trim();
-            if (url) {
-                loadAudioFromUrl(url);
-                fileUploadLabel.textContent = "Canción cargada desde URL";
-            }
-        });
+      // Fondo Synthwave
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, '#0a0518');
+      grad.addColorStop(0.5, '#1e0b36');
+      grad.addColorStop(1, '#050508');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        selectDemoBtn.addEventListener('click', () => {
-            isUsingDemo = true;
-            demoBadge.classList.remove('hidden');
-            if (audioElement) audioElement.pause();
-            fileUploadLabel.textContent = "Subir MP3 o Audio Local";
-            songUrlInput.value = "";
-        });
+      // Dibujar Carriles y Malla 3D
+      ctx.strokeStyle = isFrenzy ? 'rgba(236, 72, 153, 0.6)' : 'rgba(168, 85, 247, 0.3)';
+      ctx.lineWidth = 2;
+      
+      for (let i = 0; i < LNS.length; i++) {
+        const p1 = project(LNS[i], 0, 0);
+        const p2 = project(LNS[i], 0, 50);
+        ctx.beginPath();
+        ctx.moveTo(p1.px, p1.py);
+        ctx.lineTo(p2.px, p2.py);
+        ctx.stroke();
+      }
 
-        // Start animation loop
-        render();
-    </script>
+      // Dibujar Notas
+      notes.forEach(n => {
+        const p = project(n.x, n.y, n.z);
+        ctx.fillStyle = n.color;
+        ctx.shadowColor = n.color;
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(p.px, p.py, 16 * p.scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      // Dibujar Obstáculos
+      obstacles.forEach(obs => {
+        const p = project(obs.x, obs.type === 'HIGH' ? -40 : 0, obs.z);
+        ctx.fillStyle = '#ef4444';
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 10;
+        const w = 80 * p.scale;
+        const h = (obs.type === 'HIGH' ? 60 : 30) * p.scale;
+        ctx.fillRect(p.px - w/2, p.py - h, w, h);
+        ctx.shadowBlur = 0;
+      });
+
+      // Dibujar Partículas
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let pt = particles[i];
+        pt.x += pt.vx; pt.y += pt.vy; pt.z += pt.vz;
+        pt.life -= 0.03;
+        if (pt.life <= 0) { particles.splice(i, 1); continue; }
+        const p = project(pt.x, pt.y, pt.z);
+        ctx.fillStyle = pt.color;
+        ctx.globalAlpha = pt.life;
+        ctx.beginPath();
+        ctx.arc(p.px, p.py, 6 * p.scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+
+      // DIBUJAR AL MONSTRUO (PERSONAJE PRINCIPAL)
+      const mp = project(monster.x, monster.jumpY, monster.z);
+      const pulse = 1 + (bass / 255) * 0.15; // Pulso con el ritmo de la música
+      const radius = 42 * mp.scale * pulse * monster.squishX;
+
+      ctx.save();
+      ctx.translate(mp.px, mp.py);
+      ctx.rotate(monster.leanAngle);
+
+      // Aura Modo Furia
+      if (isFrenzy) {
+        ctx.shadowColor = '#ec4899';
+        ctx.shadowBlur = 30;
+      }
+
+      // Cuerpo negro circular
+      ctx.fillStyle = '#09090b';
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ojos Circulares Blancos
+      const eyeOffset = radius * 0.4;
+      const eyeRadius = radius * 0.28;
+      ctx.fillStyle = '#ffffff';
+      
+      // Ojo Izquierdo
+      ctx.beginPath();
+      ctx.arc(-eyeOffset, -eyeOffset * 0.5, eyeRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ojo Derecho
+      ctx.beginPath();
+      ctx.arc(eyeOffset, -eyeOffset * 0.5, eyeRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pupilas dirigidas a notas
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(-eyeOffset + 2, -eyeOffset * 0.5 + 2, eyeRadius * 0.4, 0, Math.PI * 2);
+      ctx.arc(eyeOffset + 2, -eyeOffset * 0.5 + 2, eyeRadius * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Boca Roja Abierta con Dientes Zig-Zag Afilados
+      ctx.fillStyle = '#991b1b';
+      const mouthWidth = radius * 1.3;
+      const mouthHeight = radius * (0.3 + monster.mouthOpen * 0.5);
+
+      ctx.beginPath();
+      ctx.ellipse(0, radius * 0.2, mouthWidth / 2, mouthHeight / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Dientes afilados
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      const teeth = 6;
+      const tWidth = mouthWidth / teeth;
+      
+      // Dientes superiores
+      for (let i = 0; i < teeth; i++) {
+        let tx = -mouthWidth/2 + i * tWidth;
+        ctx.moveTo(tx, radius * 0.2 - mouthHeight/2);
+        ctx.lineTo(tx + tWidth/2, radius * 0.2);
+        ctx.lineTo(tx + tWidth, radius * 0.2 - mouthHeight/2);
+      }
+      // Dientes inferiores
+      for (let i = 0; i < teeth; i++) {
+        let tx = -mouthWidth/2 + i * tWidth;
+        ctx.moveTo(tx, radius * 0.2 + mouthHeight/2);
+        ctx.lineTo(tx + tWidth/2, radius * 0.2);
+        ctx.lineTo(tx + tWidth, radius * 0.2 + mouthHeight/2);
+      }
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // Iniciar bucle de renderizado
+    requestAnimationFrame(update);
+  </script>
 </body>
 </html>
