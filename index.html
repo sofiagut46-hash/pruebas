@@ -67,6 +67,11 @@
 </head>
 <body class="w-screen h-screen relative flex items-center justify-center">
 
+    <!-- Container oculto para el IFrame Player de YouTube -->
+    <div id="ytPlayerContainer" class="hidden absolute top-0 left-0 pointer-events-none opacity-0 w-1 h-1">
+        <div id="ytPlayer"></div>
+    </div>
+
     <!-- Game Canvas -->
     <canvas id="gameCanvas" class="absolute inset-0 w-full h-full block z-0"></canvas>
 
@@ -150,7 +155,7 @@
                 <!-- Track Selection -->
                 <div>
                     <label class="block text-xs font-bold text-red-400 uppercase tracking-wider mb-2">
-                        <i class="fa-solid fa-music mr-1"></i> Selección de Audio
+                        <i class="fa-solid fa-music mr-1"></i> Selección de Audio / YouTube
                     </label>
                     <div class="flex flex-col gap-2">
                         <button id="selectDemoBtn" class="w-full text-left glass-panel p-3 rounded-xl border border-red-500/50 hover:bg-red-500/20 transition flex items-center justify-between text-xs sm:text-sm">
@@ -159,7 +164,7 @@
                         </button>
 
                         <div class="flex gap-2">
-                            <input type="text" id="songUrlInput" placeholder="https://ejemplo.com/cancion.mp3" class="flex-1 bg-black/60 border border-gray-700 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <input type="text" id="songUrlInput" placeholder="Enlace MP3 o URL de YouTube..." class="flex-1 bg-black/60 border border-gray-700 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
                             <button id="loadUrlBtn" class="px-3 py-2 bg-gray-800 hover:bg-red-600/60 rounded-xl text-xs font-bold transition">Cargar URL</button>
                         </div>
 
@@ -249,6 +254,9 @@
         </div>
     </div>
 
+    <!-- Carga de la API de IFrame de YouTube -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
     <!-- Game Engine Logic -->
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -327,14 +335,46 @@
         let isBlinking = false;
         let pulseBeatScale = 1.0;
 
-        // Web Audio Variables
+        // Audio Management Variables
         let audioCtx = null;
         let analyser = null;
         let audioSource = null;
         let audioElement = null;
         let synthInterval = null;
-        let isUsingDemo = true;
+        let audioMode = 'DEMO'; // 'DEMO', 'URL', 'FILE', 'YOUTUBE'
         let beatCooldown = 0;
+
+        // YouTube Audio Integration
+        let ytPlayer = null;
+        let ytVideoId = null;
+        let isYtReady = false;
+
+        // Extraer ID de enlace de YouTube
+        function extractYouTubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        window.onYouTubeIframeAPIReady = function() {
+            ytPlayer = new YT.Player('ytPlayer', {
+                height: '0',
+                width: '0',
+                playerVars: {
+                    'autoplay': 0,
+                    'controls': 0,
+                    'disablekb': 1
+                },
+                events: {
+                    'onReady': () => { isYtReady = true; },
+                    'onStateChange': (event) => {
+                        if (event.data === YT.PlayerState.ENDED) {
+                            triggerGameOver();
+                        }
+                    }
+                }
+            });
+        };
 
         // Audio Energy Tracker for Dynamic Beat Detection
         let energyHistory = new Array(30).fill(0);
@@ -374,17 +414,19 @@
             const tempo = difficulty === 'easy' ? 360 : difficulty === 'medium' ? 260 : 180;
 
             synthInterval = setInterval(() => {
-                if (gameState !== 'PLAYING' || !isUsingDemo || !audioCtx) return;
+                if (gameState !== 'PLAYING' || (audioMode !== 'DEMO' && audioMode !== 'YOUTUBE') || !audioCtx) return;
 
+                // En modo YouTube, generar pulsos rítmicos sincronizados para mantener la dinámica de juego
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 
-                // Route Osc -> Analyser -> Destination
                 osc.connect(gain);
                 if (analyser) {
                     gain.connect(analyser);
-                    analyser.connect(audioCtx.destination);
-                } else {
+                    if (audioMode === 'DEMO') {
+                        analyser.connect(audioCtx.destination);
+                    }
+                } else if (audioMode === 'DEMO') {
                     gain.connect(audioCtx.destination);
                 }
 
@@ -430,6 +472,22 @@
 
         function loadAudioFromUrl(url) {
             initAudioContext();
+            
+            // Comprobar si es un enlace de YouTube
+            const ytId = extractYouTubeId(url);
+            if (ytId) {
+                ytVideoId = ytId;
+                audioMode = 'YOUTUBE';
+                demoBadge.classList.add('hidden');
+                fileUploadLabel.textContent = "Canción de YouTube Cargada";
+                if (audioElement) audioElement.pause();
+                if (ytPlayer && isYtReady) {
+                    ytPlayer.cueVideoById(ytVideoId);
+                }
+                return;
+            }
+
+            // Si es un archivo directo MP3/Audio
             if (audioElement) {
                 audioElement.pause();
             }
@@ -447,7 +505,7 @@
                 }
             }, { once: true });
 
-            isUsingDemo = false;
+            audioMode = 'URL';
             demoBadge.classList.add('hidden');
         }
 
@@ -1122,8 +1180,14 @@
 
             gameState = 'PLAYING';
 
-            if (isUsingDemo) {
+            if (audioMode === 'DEMO') {
                 createDemoSynthTrack();
+            } else if (audioMode === 'YOUTUBE') {
+                createDemoSynthTrack();
+                if (ytPlayer && isYtReady && ytVideoId) {
+                    ytPlayer.loadVideoById(ytVideoId);
+                    ytPlayer.playVideo();
+                }
             } else if (audioElement) {
                 audioElement.currentTime = 0;
                 audioElement.play().catch(e => console.log("Audio play error:", e));
@@ -1135,12 +1199,14 @@
                 gameState = 'PAUSED';
                 pauseMenu.classList.remove('hidden');
                 if (synthInterval) clearInterval(synthInterval);
-                if (audioElement && !isUsingDemo) audioElement.pause();
+                if (audioElement && audioMode !== 'DEMO' && audioMode !== 'YOUTUBE') audioElement.pause();
+                if (audioMode === 'YOUTUBE' && ytPlayer && isYtReady) ytPlayer.pauseVideo();
             } else if (gameState === 'PAUSED') {
                 gameState = 'PLAYING';
                 pauseMenu.classList.add('hidden');
-                if (isUsingDemo) {
+                if (audioMode === 'DEMO' || audioMode === 'YOUTUBE') {
                     createDemoSynthTrack();
+                    if (audioMode === 'YOUTUBE' && ytPlayer && isYtReady) ytPlayer.playVideo();
                 } else if (audioElement) {
                     audioElement.play().catch(e => console.log("Audio play error:", e));
                 }
@@ -1151,6 +1217,7 @@
             gameState = 'GAMEOVER';
             if (synthInterval) clearInterval(synthInterval);
             if (audioElement) audioElement.pause();
+            if (audioMode === 'YOUTUBE' && ytPlayer && isYtReady) ytPlayer.stopVideo();
 
             hudOverlay.classList.add('hidden');
             gameOverMenu.classList.remove('hidden');
@@ -1168,6 +1235,7 @@
         toMenuBtn.addEventListener('click', () => {
             if (synthInterval) clearInterval(synthInterval);
             if (audioElement) audioElement.pause();
+            if (ytPlayer && isYtReady) ytPlayer.stopVideo();
             gameState = 'MENU';
             pauseMenu.classList.add('hidden');
             hudOverlay.classList.add('hidden');
@@ -1175,6 +1243,7 @@
         });
 
         goMenuBtn.addEventListener('click', () => {
+            if (ytPlayer && isYtReady) ytPlayer.stopVideo();
             gameState = 'MENU';
             gameOverMenu.classList.add('hidden');
             hudOverlay.classList.add('hidden');
@@ -1198,6 +1267,7 @@
             if (file) {
                 fileUploadLabel.textContent = file.name;
                 loadAudioFromUrl(URL.createObjectURL(file));
+                audioMode = 'FILE';
             }
         });
 
@@ -1205,14 +1275,14 @@
             const url = songUrlInput.value.trim();
             if (url) {
                 loadAudioFromUrl(url);
-                fileUploadLabel.textContent = "Canción cargada desde URL";
             }
         });
 
         selectDemoBtn.addEventListener('click', () => {
-            isUsingDemo = true;
+            audioMode = 'DEMO';
             demoBadge.classList.remove('hidden');
             if (audioElement) audioElement.pause();
+            if (ytPlayer && isYtReady) ytPlayer.stopVideo();
             fileUploadLabel.textContent = "Subir MP3 o Audio Local";
             songUrlInput.value = "";
         });
