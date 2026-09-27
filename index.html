@@ -1,1294 +1,411 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chomp Beat FX - Ultimate Monster Rhythm Runner</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
-        
-        body {
-            font-family: 'Rajdhani', sans-serif;
-            background-color: #030206;
-            color: #f3f4f6;
-            overflow: hidden;
-            user-select: none;
-            touch-action: none;
-        }
+  <meta charset="UTF-8">
+  <title>Rhythm Game - Neon Edition</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
+    body {
+      background: #080811;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
 
-        .glass-panel {
-            background: rgba(15, 10, 24, 0.88);
-            backdrop-filter: blur(14px);
-            border: 1px solid rgba(239, 68, 68, 0.35);
-            box-shadow: 0 8px 32px 0 rgba(239, 68, 68, 0.2);
-        }
+    /* Fondo animado estilo Synthwave Grid */
+    .background-grid {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      top: -50%;
+      left: -50%;
+      background-image: 
+        linear-gradient(to right, rgba(255, 0, 128, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 240, 255, 0.1) 1px, transparent 1px);
+      background-size: 60px 60px;
+      transform: perspective(500px) rotateX(60deg);
+      animation: gridMove 4s linear infinite;
+      z-index: 0;
+    }
 
-        .glass-button {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(185, 28, 28, 0.95) 100%);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 0 18px rgba(239, 68, 68, 0.5);
-        }
+    @keyframes gridMove {
+      0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+      100% { transform: perspective(500px) rotateX(60deg) translateY(60px); }
+    }
 
-        .glass-button:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 0 30px rgba(239, 68, 68, 0.8);
-            background: linear-gradient(135deg, rgba(248, 113, 113, 1) 0%, rgba(220, 38, 38, 1) 100%);
-        }
+    .game-container {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
-        .glass-button:active {
-            transform: translateY(1px) scale(0.98);
-        }
+    .header-ui {
+      display: flex;
+      justify-content: space-between;
+      width: 360px;
+      margin-bottom: 15px;
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+    }
 
-        .neon-text-red {
-            text-shadow: 0 0 10px rgba(239, 68, 68, 0.9), 0 0 25px rgba(239, 68, 68, 0.5);
-        }
+    /* Pista de juego más grande */
+    .track-container {
+      position: relative;
+      width: 360px;
+      height: 600px;
+      background: rgba(15, 15, 30, 0.85);
+      border: 3px solid #00f0ff;
+      border-radius: 12px;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.3), inset 0 0 15px rgba(0, 0, 0, 0.8);
+      overflow: hidden;
+      display: flex;
+    }
 
-        .frenzy-glow {
-            text-shadow: 0 0 12px #a855f7, 0 0 28px #a855f7;
-        }
+    .lane {
+      flex: 1;
+      border-right: 1px dashed rgba(255, 255, 255, 0.15);
+      position: relative;
+    }
 
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(10, 10, 15, 0.5);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(239, 68, 68, 0.5);
-            border-radius: 3px;
-        }
-    </style>
+    .lane:last-child {
+      border-right: none;
+    }
+
+    /* Receptor inferior (Target) más grande y vistoso */
+    .target-zone {
+      position: absolute;
+      bottom: 30px;
+      width: 70px;
+      height: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 3px solid rgba(255, 255, 255, 0.4);
+      border-radius: 14px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+      transition: background 0.1s, transform 0.05s;
+    }
+
+    .target-zone.active {
+      transform: translateX(-50%) scale(0.92);
+      background: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+    }
+
+    /* Notas más grandes y redondeadas */
+    .note {
+      position: absolute;
+      width: 70px;
+      height: 35px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 8px;
+      box-shadow: 0 0 15px currentColor;
+    }
+
+    .lane-0 .target-zone { border-color: #ff007f; color: #ff007f; }
+    .lane-1 .target-zone { border-color: #00f0ff; color: #00f0ff; }
+    .lane-2 .target-zone { border-color: #00ff66; color: #00ff66; }
+    .lane-3 .target-zone { border-color: #ffdd00; color: #ffdd00; }
+
+    .lane-0 .note { background: #ff007f; color: #ff007f; }
+    .lane-1 .note { background: #00f0ff; color: #00f0ff; }
+    .lane-2 .note { background: #00ff66; color: #00ff66; }
+    .lane-3 .note { background: #ffdd00; color: #ffdd00; }
+
+    /* Partículas de impacto */
+    .particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: pop 0.4s ease-out forwards;
+    }
+
+    @keyframes pop {
+      0% { opacity: 1; transform: translate(0, 0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+    }
+
+    /* Pantalla de inicio */
+    .overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(8, 8, 17, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      border-radius: 12px;
+    }
+
+    .start-btn {
+      padding: 15px 35px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #080811;
+      background: #00f0ff;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 0 20px #00f0ff;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .start-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 35px #00f0ff;
+    }
+  </style>
 </head>
-<body class="w-screen h-screen relative flex items-center justify-center">
+<body>
 
-    <!-- Container oculto para el IFrame Player de YouTube -->
-    <div id="ytPlayerContainer" class="hidden absolute top-0 left-0 pointer-events-none opacity-0 w-1 h-1">
-        <div id="ytPlayer"></div>
+  <div class="background-grid"></div>
+
+  <div class="game-container">
+    <div class="header-ui">
+      <div>SCORE: <span id="score">0</span></div>
+      <div>COMBO: <span id="combo">0</span></div>
     </div>
 
-    <!-- Game Canvas -->
-    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full block z-0"></canvas>
+    <div class="track-container" id="track">
+      <div class="overlay" id="startScreen">
+        <button class="start-btn" id="startBtn">INICIAR JUEGO</button>
+      </div>
 
-    <!-- HUD Overlay (Playing State) -->
-    <div id="hudOverlay" class="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-4 sm:p-6 hidden">
-        <!-- Top HUD Bar -->
-        <div class="flex justify-between items-start w-full">
-            <div class="flex gap-2 sm:gap-4 items-center">
-                <!-- Score -->
-                <div class="glass-panel px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl border border-red-500/40">
-                    <p class="text-[10px] sm:text-xs uppercase tracking-widest text-red-400 font-bold">Puntos</p>
-                    <p id="hudScore" class="text-2xl sm:text-3xl font-orbitron font-extrabold text-white">0</p>
-                </div>
-                <!-- Combo -->
-                <div class="glass-panel px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl border border-purple-500/40">
-                    <p class="text-[10px] sm:text-xs uppercase tracking-widest text-purple-400 font-bold">Combo</p>
-                    <p id="hudCombo" class="text-2xl sm:text-3xl font-orbitron font-extrabold text-purple-300">0x</p>
-                </div>
-                <!-- Active Buff Badges -->
-                <div id="buffContainer" class="flex gap-2 items-center"></div>
-            </div>
-
-            <!-- Pause Button -->
-            <button id="pauseBtn" class="pointer-events-auto glass-panel w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center hover:bg-red-900/40 transition text-red-400 text-lg sm:text-xl border border-red-500/50">
-                <i class="fa-solid fa-pause"></i>
-            </button>
-        </div>
-
-        <!-- Frenzy / Bite Meter Bar -->
-        <div class="w-full max-w-md mx-auto my-2 pointer-events-none">
-            <div class="flex justify-between text-xs font-bold uppercase tracking-wider mb-1">
-                <span id="frenzyLabel" class="text-red-400">Modo Furia</span>
-                <span id="frenzyPercent" class="text-red-300">0%</span>
-            </div>
-            <div class="w-full h-3 bg-black/60 rounded-full border border-red-500/30 overflow-hidden p-0.5">
-                <div id="frenzyBar" class="h-full bg-gradient-to-r from-red-600 via-pink-500 to-purple-600 rounded-full w-0 transition-all duration-200"></div>
-            </div>
-        </div>
-
-        <!-- Bottom Controls Info -->
-        <div class="w-full flex justify-between items-end">
-            <div class="text-xs text-gray-300 glass-panel px-4 py-2 rounded-lg border border-gray-700/50 hidden md:block">
-                <span class="text-red-400 font-bold"><i class="fa-solid fa-keyboard mr-1"></i> Controles:</span> 
-                [← / → / A / D] Moverse | [↑ / W / Espacio] Saltar | [↓ / S] Deslizarse
-            </div>
-            <!-- Touch Control Overlay for Mobile -->
-            <div class="pointer-events-auto grid grid-cols-3 gap-2 md:hidden w-full max-w-xs mx-auto">
-                <div></div>
-                <button id="mobileUp" class="glass-panel py-3 rounded-xl text-xl text-red-400 active:bg-red-500/30 flex justify-center items-center">
-                    <i class="fa-solid fa-arrow-up"></i>
-                </button>
-                <div></div>
-                <button id="mobileLeft" class="glass-panel py-3 rounded-xl text-xl text-red-400 active:bg-red-500/30 flex justify-center items-center">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </button>
-                <button id="mobileDown" class="glass-panel py-3 rounded-xl text-xl text-red-400 active:bg-red-500/30 flex justify-center items-center">
-                    <i class="fa-solid fa-arrow-down"></i>
-                </button>
-                <button id="mobileRight" class="glass-panel py-3 rounded-xl text-xl text-red-400 active:bg-red-500/30 flex justify-center items-center">
-                    <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </div>
-        </div>
+      <div class="lane lane-0"><div class="target-zone" id="target-0">A</div></div>
+      <div class="lane lane-1"><div class="target-zone" id="target-1">S</div></div>
+      <div class="lane lane-2"><div class="target-zone" id="target-2">K</div></div>
+      <div class="lane lane-3"><div class="target-zone" id="target-3">L</div></div>
     </div>
+  </div>
 
-    <!-- Main Menu Overlay -->
-    <div id="mainMenu" class="absolute inset-0 z-20 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-        <div class="glass-panel w-full max-w-lg p-6 sm:p-8 rounded-3xl flex flex-col gap-5 text-center border-red-600/40 relative overflow-hidden">
-            <div class="absolute -top-20 -left-20 w-40 h-40 bg-red-600/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+  <script>
+    const keys = ['a', 's', 'k', 'l'];
+    const laneKeys = { 'a': 0, 's': 1, 'k': 2, 'l': 3 };
+    const trackHeight = 600;
+    const targetY = 535; // Posición de impacto
+    const noteSpeed = 0.5; // Píxeles por milisegundo
 
-            <div>
-                <h1 class="text-4xl sm:text-5xl font-orbitron font-black text-white tracking-wider neon-text-red">
-                    CHOMP <span class="text-red-500">BEAT FX</span>
-                </h1>
-                <p class="text-xs sm:text-sm text-gray-400 mt-1 uppercase tracking-widest">Monster Rhythm Runner con Salto y Deslizamiento</p>
-            </div>
+    let audioCtx = null;
+    let isPlaying = false;
+    let score = 0;
+    let combo = 0;
+    let startTime = 0;
+    let notes = [];
 
-            <!-- Options Panel -->
-            <div class="flex flex-col gap-4 text-left">
-                <!-- Track Selection -->
-                <div>
-                    <label class="block text-xs font-bold text-red-400 uppercase tracking-wider mb-2">
-                        <i class="fa-solid fa-music mr-1"></i> Selección de Audio / YouTube
-                    </label>
-                    <div class="flex flex-col gap-2">
-                        <button id="selectDemoBtn" class="w-full text-left glass-panel p-3 rounded-xl border border-red-500/50 hover:bg-red-500/20 transition flex items-center justify-between text-xs sm:text-sm">
-                            <span><i class="fa-solid fa-compact-disc mr-2 text-red-400"></i> Pista Synthwave Rítmica (Generada)</span>
-                            <span id="demoBadge" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded font-bold">Activa</span>
-                        </button>
+    const scoreEl = document.getElementById('score');
+    const comboEl = document.getElementById('combo');
+    const startScreen = document.getElementById('startScreen');
+    const startBtn = document.getElementById('startBtn');
+    const track = document.getElementById('track');
 
-                        <div class="flex gap-2">
-                            <input type="text" id="songUrlInput" placeholder="Enlace MP3 o URL de YouTube..." class="flex-1 bg-black/60 border border-gray-700 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
-                            <button id="loadUrlBtn" class="px-3 py-2 bg-gray-800 hover:bg-red-600/60 rounded-xl text-xs font-bold transition">Cargar URL</button>
-                        </div>
+    // Inicializar AudioContext sin latencia inicial
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
 
-                        <label class="cursor-pointer glass-panel p-2.5 rounded-xl border border-gray-700/80 hover:border-red-500/50 transition flex items-center justify-center text-xs text-gray-300 gap-2">
-                            <i class="fa-solid fa-file-audio text-red-400"></i>
-                            <span id="fileUploadLabel">Subir MP3 o Audio Local</span>
-                            <input type="file" id="audioFileInput" accept="audio/*" class="hidden">
-                        </label>
-                    </div>
-                </div>
+    // Generador de audio sintético (Sintetizador en ritmo)
+    function playNoteSound(freq) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    }
 
-                <!-- Difficulty Selection -->
-                <div>
-                    <label class="block text-xs font-bold text-red-400 uppercase tracking-wider mb-2">
-                        <i class="fa-solid fa-gauge-high mr-1"></i> Dificultad
-                    </label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button data-diff="easy" class="diff-btn glass-panel py-2 rounded-xl text-xs font-bold border border-gray-700 text-gray-400 hover:border-green-500 transition">Fácil</button>
-                        <button data-diff="medium" class="diff-btn glass-panel py-2 rounded-xl text-xs font-bold border border-red-500 bg-red-500/20 text-white">Normal</button>
-                        <button data-diff="hard" class="diff-btn glass-panel py-2 rounded-xl text-xs font-bold border border-gray-700 text-gray-400 hover:border-purple-500 transition">Difícil</button>
-                    </div>
-                </div>
-            </div>
+    // Generar patrón de notas con separación garantizada al ritmo (BPM)
+    function generateRhythmChart() {
+      const bpm = 125;
+      const beatInterval = (60 / bpm) * 1000;
+      const chart = [];
+      const totalBeats = 120; // Duración total
+      
+      let lastTimePerLane = [-999, -999, -999, -999];
+      const minDistanceTime = 250; // Evita notas demasiado juntas en la misma línea
 
-            <!-- Gameplay Legend -->
-            <div class="grid grid-cols-4 gap-2 text-center text-[10px] text-gray-400 bg-black/40 p-2 rounded-xl border border-gray-800">
-                <div><span class="text-pink-400 font-bold block">🎵 Notas</span>Comer</div>
-                <div><span class="text-yellow-400 font-bold block">🧲 Imán</span>Atracción</div>
-                <div><span class="text-blue-400 font-bold block">🛡️ Escudo</span>Protección</div>
-                <div><span class="text-purple-400 font-bold block">⚡ Furia</span>X2 Puntos</div>
-            </div>
+      for (let i = 0; i < totalBeats; i++) {
+        const time = i * beatInterval;
+        const lane = Math.floor(Math.random() * 4);
 
-            <!-- Start Button -->
-            <button id="startBtn" class="glass-button w-full py-4 rounded-2xl text-xl font-orbitron font-black text-white uppercase tracking-widest mt-1 flex items-center justify-center gap-2">
-                <i class="fa-solid fa-play"></i> ¡Comenzar Carrera!
-            </button>
-        </div>
-    </div>
+        if (time - lastTimePerLane[lane] >= minDistanceTime) {
+          chart.push({ lane, time });
+          lastTimePerLane[lane] = time;
+        }
 
-    <!-- Pause Menu Overlay -->
-    <div id="pauseMenu" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
-        <div class="glass-panel w-full max-w-md p-6 sm:p-8 rounded-3xl flex flex-col gap-5 text-center border-red-500/40">
-            <h2 class="text-3xl font-orbitron font-extrabold text-white tracking-wider neon-text-red">
-                JUEGO PAUSADO
-            </h2>
+        // Posibilidad de nota doble en el compás sin superposición
+        if (i % 2 === 0 && Math.random() > 0.5) {
+          const secondLane = (lane + 1 + Math.floor(Math.random() * 3)) % 4;
+          if (time - lastTimePerLane[secondLane] >= minDistanceTime) {
+            chart.push({ lane: secondLane, time });
+            lastTimePerLane[secondLane] = time;
+          }
+        }
+      }
+      return chart;
+    }
 
-            <div class="flex flex-col gap-3">
-                <button id="resumeBtn" class="glass-button py-3.5 rounded-xl font-bold text-white uppercase tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-play"></i> Reanudar
-                </button>
-                <button id="restartBtn" class="glass-panel py-3.5 rounded-xl font-bold text-gray-200 hover:bg-red-500/20 border border-red-500/40 transition uppercase tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-rotate-right"></i> Reiniciar
-                </button>
-                <button id="toMenuBtn" class="glass-panel py-3.5 rounded-xl font-bold text-gray-300 hover:bg-gray-800 border border-gray-700 transition uppercase tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-sliders"></i> Cambiar Canción / Menú
-                </button>
-            </div>
-        </div>
-    </div>
+    function startGame() {
+      initAudio();
+      startScreen.style.display = 'none';
+      score = 0;
+      combo = 0;
+      scoreEl.innerText = score;
+      comboEl.innerText = combo;
 
-    <!-- Game Over Overlay -->
-    <div id="gameOverMenu" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg hidden">
-        <div class="glass-panel w-full max-w-md p-6 sm:p-8 rounded-3xl flex flex-col gap-5 text-center border-red-600/60 relative overflow-hidden">
-            <h2 class="text-4xl font-orbitron font-black text-red-500 neon-text-red tracking-wider">
-                FIN DE LA CARRERA
-            </h2>
+      const chart = generateRhythmChart();
+      const travelTime = targetY / noteSpeed; // Tiempo que tarda la nota en bajar
 
-            <div class="glass-panel p-4 rounded-2xl flex flex-col gap-3 border border-gray-700">
-                <div class="flex justify-between items-center">
-                    <span class="text-xs uppercase text-gray-400 font-bold">Puntuación Total:</span>
-                    <span id="finalScore" class="text-2xl font-orbitron font-extrabold text-white">0</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xs uppercase text-gray-400 font-bold">Máximo Combo:</span>
-                    <span id="finalCombo" class="text-2xl font-orbitron font-extrabold text-purple-400">0x</span>
-                </div>
-            </div>
+      const lanesElements = [
+        document.querySelector('.lane-0'),
+        document.querySelector('.lane-1'),
+        document.querySelector('.lane-2'),
+        document.querySelector('.lane-3')
+      ];
 
-            <div class="flex flex-col gap-3">
-                <button id="retryBtn" class="glass-button py-3.5 rounded-xl font-bold text-white uppercase tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-arrow-rotate-right"></i> Reintentar
-                </button>
-                <button id="goMenuBtn" class="glass-panel py-3.5 rounded-xl font-bold text-gray-300 hover:bg-gray-800 border border-gray-700 transition uppercase tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-house"></i> Menú Principal
-                </button>
-            </div>
-        </div>
-    </div>
+      notes = chart.map(data => {
+        const el = document.createElement('div');
+        el.className = 'note';
+        lanesElements[data.lane].appendChild(el);
 
-    <!-- Carga de la API de IFrame de YouTube -->
-    <script src="https://www.youtube.com/iframe_api"></script>
-
-    <!-- Game Engine Logic -->
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // UI Binding
-        const mainMenu = document.getElementById('mainMenu');
-        const pauseMenu = document.getElementById('pauseMenu');
-        const gameOverMenu = document.getElementById('gameOverMenu');
-        const hudOverlay = document.getElementById('hudOverlay');
-        const hudScore = document.getElementById('hudScore');
-        const hudCombo = document.getElementById('hudCombo');
-        const frenzyBar = document.getElementById('frenzyBar');
-        const frenzyPercent = document.getElementById('frenzyPercent');
-        const buffContainer = document.getElementById('buffContainer');
-
-        const pauseBtn = document.getElementById('pauseBtn');
-        const startBtn = document.getElementById('startBtn');
-        const resumeBtn = document.getElementById('resumeBtn');
-        const restartBtn = document.getElementById('restartBtn');
-        const toMenuBtn = document.getElementById('toMenuBtn');
-        const retryBtn = document.getElementById('retryBtn');
-        const goMenuBtn = document.getElementById('goMenuBtn');
-
-        const audioFileInput = document.getElementById('audioFileInput');
-        const songUrlInput = document.getElementById('songUrlInput');
-        const loadUrlBtn = document.getElementById('loadUrlBtn');
-        const selectDemoBtn = document.getElementById('selectDemoBtn');
-        const fileUploadLabel = document.getElementById('fileUploadLabel');
-        const demoBadge = document.getElementById('demoBadge');
-        const diffBtns = document.querySelectorAll('.diff-btn');
-
-        const mobileLeft = document.getElementById('mobileLeft');
-        const mobileRight = document.getElementById('mobileRight');
-        const mobileUp = document.getElementById('mobileUp');
-        const mobileDown = document.getElementById('mobileDown');
-
-        // Game State Variables
-        let gameState = 'MENU';
-        let currentLane = 1; // 0: Left, 1: Center, 2: Right
-        let targetLaneX = 0;
-        let playerX = 0;
-        let playerYOffset = 0; // Vertical offset for jump/slide
-        let playerHeightScale = 1.0; // Squish scale for sliding
-        let leanAngle = 0; // Tilt angle when moving lanes
-
-        // Jump & Slide Physics
-        let isJumping = false;
-        let jumpVelocity = 0;
-        let isSliding = false;
-        let slideTimer = 0;
-
-        // Player Stats & Combo
-        let score = 0;
-        let combo = 0;
-        let maxCombo = 0;
-        let frenzyMeter = 0; // 0 to 100
-        let isFrenzyActive = false;
-        let frenzyTimer = 0;
-
-        // Active Power-ups
-        let hasShield = false;
-        let magnetTimer = 0;
-
-        // Difficulty Config
-        let difficulty = 'medium';
-        let diffConfig = {
-            easy: { thresholdSensitivity: 1.25, speed: 0.014, cooldown: 18, obstacleFreq: 0.15 },
-            medium: { thresholdSensitivity: 1.15, speed: 0.020, cooldown: 12, obstacleFreq: 0.25 },
-            hard: { thresholdSensitivity: 1.05, speed: 0.026, cooldown: 8, obstacleFreq: 0.35 }
+        return {
+          lane: data.lane,
+          targetTime: data.time + travelTime,
+          el: el,
+          hit: false,
+          missed: false
         };
+      });
 
-        // Monster Animation Timers
-        let biteAnimation = 0;
-        let blinkTimer = 0;
-        let isBlinking = false;
-        let pulseBeatScale = 1.0;
+      startTime = performance.now();
+      isPlaying = true;
+      requestAnimationFrame(updateGame);
+    }
 
-        // Audio Management Variables
-        let audioCtx = null;
-        let analyser = null;
-        let audioSource = null;
-        let audioElement = null;
-        let synthInterval = null;
-        let audioMode = 'DEMO'; // 'DEMO', 'URL', 'FILE', 'YOUTUBE'
-        let beatCooldown = 0;
+    function updateGame(now) {
+      if (!isPlaying) return;
 
-        // YouTube Audio Integration
-        let ytPlayer = null;
-        let ytVideoId = null;
-        let isYtReady = false;
+      const elapsed = now - startTime;
 
-        // Extraer ID de enlace de YouTube
-        function extractYouTubeId(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
+      notes.forEach(note => {
+        if (note.hit || note.missed) return;
+
+        // Cálculo exacto de posición por tiempo transcurrido
+        const timeDiff = note.targetTime - elapsed;
+        const currentY = targetY - (timeDiff * noteSpeed);
+
+        if (currentY >= -40 && currentY <= trackHeight + 40) {
+          note.el.style.transform = `translate(-50%, ${currentY}px)`;
+        } else if (currentY < -40) {
+          note.el.style.transform = `translate(-50%, -50px)`;
         }
 
-        window.onYouTubeIframeAPIReady = function() {
-            ytPlayer = new YT.Player('ytPlayer', {
-                height: '0',
-                width: '0',
-                playerVars: {
-                    'autoplay': 0,
-                    'controls': 0,
-                    'disablekb': 1
-                },
-                events: {
-                    'onReady': () => { isYtReady = true; },
-                    'onStateChange': (event) => {
-                        if (event.data === YT.PlayerState.ENDED) {
-                            triggerGameOver();
-                        }
-                    }
-                }
-            });
-        };
-
-        // Audio Energy Tracker for Dynamic Beat Detection
-        let energyHistory = new Array(30).fill(0);
-
-        // Track Entities
-        let entities = []; // Notes, Power-ups & Obstacles
-        let particles = [];
-        let gameTime = 0;
-
-        // Resize Canvas
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+        // Detección de nota perdida (Miss)
+        if (timeDiff < -120 && !note.hit && !note.missed) {
+          note.missed = true;
+          note.el.style.opacity = '0.2';
+          combo = 0;
+          comboEl.innerText = combo;
         }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        // Initialize Audio Context
-        function initAudioContext() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            if (!analyser) {
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
-                analyser.smoothingTimeConstant = 0.8;
-            }
-        }
-
-        // Demo Synth Track Generator with Real-time WebAudio Routing
-        function createDemoSynthTrack() {
-            if (synthInterval) clearInterval(synthInterval);
-            let beatStep = 0;
-            const tempo = difficulty === 'easy' ? 360 : difficulty === 'medium' ? 260 : 180;
-
-            synthInterval = setInterval(() => {
-                if (gameState !== 'PLAYING' || (audioMode !== 'DEMO' && audioMode !== 'YOUTUBE') || !audioCtx) return;
-
-                // En modo YouTube, generar pulsos rítmicos sincronizados para mantener la dinámica de juego
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                
-                osc.connect(gain);
-                if (analyser) {
-                    gain.connect(analyser);
-                    if (audioMode === 'DEMO') {
-                        analyser.connect(audioCtx.destination);
-                    }
-                } else if (audioMode === 'DEMO') {
-                    gain.connect(audioCtx.destination);
-                }
-
-                const now = audioCtx.currentTime;
-
-                if (beatStep % 4 === 0) {
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(150, now);
-                    osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.18);
-                    gain.gain.setValueAtTime(1.0, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-                } else if (beatStep % 2 === 0) {
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(260, now);
-                    gain.gain.setValueAtTime(0.35, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                } else {
-                    osc.type = 'sawtooth';
-                    const scale = [220, 261.63, 329.63, 392.00, 440.00];
-                    osc.frequency.setValueAtTime(scale[beatStep % scale.length], now);
-                    gain.gain.setValueAtTime(0.25, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-                }
-
-                osc.start(now);
-                osc.stop(now + 0.18);
-                beatStep = (beatStep + 1) % 16;
-            }, tempo);
-        }
-
-        function setupAudioNodes(source) {
-            if (!analyser) {
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
-            }
-            try {
-                source.connect(analyser);
-                analyser.connect(audioCtx.destination);
-            } catch(e) {
-                console.log("Audio node setup warning:", e);
-            }
-        }
-
-        function loadAudioFromUrl(url) {
-            initAudioContext();
-            
-            // Comprobar si es un enlace de YouTube
-            const ytId = extractYouTubeId(url);
-            if (ytId) {
-                ytVideoId = ytId;
-                audioMode = 'YOUTUBE';
-                demoBadge.classList.add('hidden');
-                fileUploadLabel.textContent = "Canción de YouTube Cargada";
-                if (audioElement) audioElement.pause();
-                if (ytPlayer && isYtReady) {
-                    ytPlayer.cueVideoById(ytVideoId);
-                }
-                return;
-            }
-
-            // Si es un archivo directo MP3/Audio
-            if (audioElement) {
-                audioElement.pause();
-            }
-            
-            audioElement = new Audio();
-            audioElement.crossOrigin = "anonymous";
-            audioElement.src = url;
-
-            audioElement.onended = () => { triggerGameOver(); };
-            
-            audioElement.addEventListener('canplay', () => {
-                if (!audioSource) {
-                    audioSource = audioCtx.createMediaElementSource(audioElement);
-                    setupAudioNodes(audioSource);
-                }
-            }, { once: true });
-
-            audioMode = 'URL';
-            demoBadge.classList.add('hidden');
-        }
-
-        // Dynamic Beat Detection & Entity Spawning Logic
-        function updateBeatDetection() {
-            if (!analyser) return;
-
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            analyser.getByteFrequencyData(dataArray);
-
-            // Bass Frequencies Energy Average
-            let bassSum = 0;
-            const bassBinCount = 10;
-            for (let i = 0; i < bassBinCount; i++) {
-                bassSum += dataArray[i];
-            }
-            const currentBassEnergy = bassSum / bassBinCount;
-
-            // Pulse monster scale based on bass response
-            pulseBeatScale = 1.0 + (currentBassEnergy / 255) * 0.18;
-
-            // Calculate Dynamic Average Energy
-            let avgEnergy = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
-            energyHistory.push(currentBassEnergy);
-            energyHistory.shift();
-
-            const config = diffConfig[difficulty];
-
-            if (beatCooldown > 0) {
-                beatCooldown--;
-            } else if (currentBassEnergy > 30 && currentBassEnergy > avgEnergy * config.thresholdSensitivity) {
-                spawnEntity();
-                beatCooldown = config.cooldown;
-            }
-        }
-
-        function spawnEntity() {
-            const lane = Math.floor(Math.random() * 3);
-            const rand = Math.random();
-            const config = diffConfig[difficulty];
-
-            let type = 'NOTE';
-
-            // Power-up or Obstacle Spawning Probability
-            if (rand < config.obstacleFreq) {
-                type = Math.random() > 0.5 ? 'OBSTACLE_HIGH' : 'OBSTACLE_LOW';
-            } else if (rand > 0.88) {
-                const pRand = Math.random();
-                if (pRand < 0.4) type = 'MAGNET';
-                else if (pRand < 0.7) type = 'SHIELD';
-                else type = 'FRENZY';
-            }
-
-            entities.push({
-                lane: lane,
-                z: 0.0,
-                type: type,
-                collected: false
-            });
-        }
-
-        // Sound FX Generators
-        function playSoundFX(type) {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            const now = audioCtx.currentTime;
-
-            if (type === 'chomp') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(350, now);
-                osc.frequency.exponentialRampToValueAtTime(60, now + 0.1);
-                gain.gain.setValueAtTime(0.4, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-            } else if (type === 'powerup') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-            } else if (type === 'hit') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(120, now);
-                osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
-                gain.gain.setValueAtTime(0.5, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-            }
-
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now);
-            osc.stop(now + 0.25);
-        }
-
-        function spawnParticles(x, y, color, count = 18) {
-            for (let i = 0; i < count; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 7 + 2;
-                particles.push({
-                    x: x,
-                    y: y,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    life: 1.0,
-                    size: Math.random() * 6 + 3,
-                    color: color
-                });
-            }
-        }
-
-        // High-Fidelity Character Rendering with Eyes Tracking, Lean, Jump, and Bite FX
-        function drawMonster(x, y, radius, mouthOpenAmount, tiltAngle, nearestTarget) {
-            ctx.save();
-            ctx.translate(x, y + playerYOffset);
-            ctx.rotate(tiltAngle);
-            ctx.scale(pulseBeatScale, pulseBeatScale * playerHeightScale);
-
-            // Audio Frenzy Aura Effect
-            if (isFrenzyActive) {
-                ctx.beginPath();
-                ctx.arc(0, 0, radius * 1.35, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(168, 85, 247, 0.35)';
-                ctx.fill();
-            }
-
-            // Shield Shielding Barrier
-            if (hasShield) {
-                ctx.beginPath();
-                ctx.arc(0, 0, radius * 1.45, 0, Math.PI * 2);
-                ctx.strokeStyle = '#3b82f6';
-                ctx.lineWidth = 4;
-                ctx.shadowColor = '#3b82f6';
-                ctx.shadowBlur = 12;
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-            }
-
-            // Outer Black Body Shell
-            ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#0a0a0d';
-            ctx.fill();
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = isFrenzyActive ? '#c084fc' : '#271933';
-            ctx.stroke();
-
-            // Inner Red Mouth
-            ctx.beginPath();
-            const mouthWidth = radius * 1.5;
-            const mouthHeight = radius * (0.55 + mouthOpenAmount * 0.45);
-            ctx.ellipse(0, radius * 0.1, mouthWidth / 2, mouthHeight / 2, 0, 0, Math.PI * 2);
-            ctx.fillStyle = isFrenzyActive ? '#dc2626' : '#991b1b';
-            ctx.fill();
-
-            // Teeth Rendering
-            ctx.beginPath();
-            const teethCount = 7;
-            const startX = -mouthWidth / 2 + 6;
-            const stepX = (mouthWidth - 12) / teethCount;
-
-            // Top Teeth
-            for (let i = 0; i <= teethCount; i++) {
-                const tx = startX + i * stepX;
-                const ty = -mouthHeight / 2 + radius * 0.1;
-                if (i === 0) ctx.moveTo(tx, ty);
-                else {
-                    const midX = tx - stepX / 2;
-                    const toothTipY = ty + mouthHeight * 0.45;
-                    ctx.lineTo(midX, toothTipY);
-                    ctx.lineTo(tx, ty);
-                }
-            }
-            // Bottom Teeth
-            for (let i = teethCount; i >= 0; i--) {
-                const tx = startX + i * stepX;
-                const ty = mouthHeight / 2 + radius * 0.1;
-                const midX = tx - stepX / 2;
-                const toothTipY = ty - mouthHeight * 0.45;
-                ctx.lineTo(midX, toothTipY);
-                ctx.lineTo(tx, ty);
-            }
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-
-            // Pupil Eye Target Tracking Calculation
-            let pupilOffsetX = 0;
-            let pupilOffsetY = 0;
-
-            if (nearestTarget) {
-                const dx = nearestTarget.x - x;
-                const dy = nearestTarget.y - (y + playerYOffset);
-                const dist = Math.hypot(dx, dy);
-                if (dist > 0) {
-                    pupilOffsetX = (dx / dist) * 5;
-                    pupilOffsetY = (dy / dist) * 4;
-                }
-            }
-
-            // Blinking timer check
-            blinkTimer++;
-            if (blinkTimer > 180) {
-                isBlinking = true;
-                if (blinkTimer > 192) {
-                    isBlinking = false;
-                    blinkTimer = 0;
-                }
-            }
-
-            // Left Eye & Pupil
-            ctx.beginPath();
-            if (isBlinking) {
-                ctx.ellipse(-radius * 0.45, -radius * 0.45, radius * 0.35, 2, 0, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-            } else {
-                ctx.ellipse(-radius * 0.45, -radius * 0.45, radius * 0.35, radius * 0.4, -0.15, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.arc(-radius * 0.4 + pupilOffsetX, -radius * 0.45 + pupilOffsetY, radius * 0.12, 0, Math.PI * 2);
-                ctx.fillStyle = '#000000';
-                ctx.fill();
-            }
-
-            // Right Eye & Pupil
-            ctx.beginPath();
-            if (isBlinking) {
-                ctx.ellipse(radius * 0.45, -radius * 0.45, radius * 0.35, 2, 0, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-            } else {
-                ctx.ellipse(radius * 0.45, -radius * 0.45, radius * 0.35, radius * 0.4, 0.15, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.arc(radius * 0.4 + pupilOffsetX, -radius * 0.45 + pupilOffsetY, radius * 0.12, 0, Math.PI * 2);
-                ctx.fillStyle = '#000000';
-                ctx.fill();
-            }
-
-            ctx.restore();
-        }
-
-        // Perspective Projections
-        function getLaneX(lane, perspective) {
-            const vanishingX = canvas.width / 2;
-            const laneWidthFar = canvas.width * 0.08;
-            const laneWidthNear = canvas.width * 0.28;
-            const currentLaneWidth = laneWidthFar + (laneWidthNear - laneWidthFar) * perspective;
-            return vanishingX + (lane - 1) * currentLaneWidth;
-        }
-
-        function getPerspectiveY(z) {
-            const horizonY = canvas.height * 0.35;
-            const bottomY = canvas.height * 0.88;
-            return horizonY + (bottomY - horizonY) * z;
-        }
-
-        // Main Game Render Loop
-        function render() {
-            // Background
-            ctx.fillStyle = '#030206';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            const horizonY = canvas.height * 0.35;
-            const bottomY = canvas.height * 0.88;
-
-            // Perspective Grid Lines
-            ctx.strokeStyle = isFrenzyActive ? 'rgba(168, 85, 247, 0.4)' : 'rgba(239, 68, 68, 0.25)';
-            ctx.lineWidth = 2;
-
-            for (let l = -0.5; l <= 2.5; l += 1.0) {
-                const xFar = getLaneX(l, 0);
-                const xNear = getLaneX(l, 1);
-                ctx.beginPath();
-                ctx.moveTo(xFar, horizonY);
-                ctx.lineTo(xNear, bottomY);
-                ctx.stroke();
-            }
-
-            // Horizon Neon Line
-            ctx.strokeStyle = isFrenzyActive ? '#a855f7' : '#ef4444';
-            ctx.lineWidth = 3;
-            ctx.shadowColor = isFrenzyActive ? '#a855f7' : '#ef4444';
-            ctx.shadowBlur = 15;
-            ctx.beginPath();
-            ctx.moveTo(0, horizonY);
-            ctx.lineTo(canvas.width, horizonY);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // Grid motion lines
-            if (gameState === 'PLAYING') {
-                gameTime += diffConfig[difficulty].speed;
-            }
-            const gridOffset = (gameTime * 4) % 1;
-            ctx.strokeStyle = 'rgba(239, 68, 68, 0.15)';
-            ctx.lineWidth = 1.5;
-            for (let z = gridOffset; z <= 1.0; z += 0.1) {
-                const y = getPerspectiveY(z);
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
-            }
-
-            // Jump & Slide Physics Logic
-            if (isJumping) {
-                playerYOffset += jumpVelocity;
-                jumpVelocity += 1.2; // Gravity
-                if (playerYOffset >= 0) {
-                    playerYOffset = 0;
-                    isJumping = false;
-                }
-            }
-
-            if (isSliding) {
-                slideTimer--;
-                playerHeightScale = 0.55; // Squish monster flat
-                if (slideTimer <= 0) {
-                    isSliding = false;
-                    playerHeightScale = 1.0;
-                }
-            }
-
-            // Magnet & Frenzy Timers
-            if (magnetTimer > 0) magnetTimer--;
-            if (frenzyTimer > 0) {
-                frenzyTimer--;
-                if (frenzyTimer <= 0) {
-                    isFrenzyActive = false;
-                }
-            }
-
-            // Smooth Lane Movement & Leaning
-            const hitZoneZ = 0.88;
-            targetLaneX = getLaneX(currentLane, hitZoneZ);
-            const moveDelta = targetLaneX - playerX;
-            playerX += moveDelta * 0.25;
-            leanAngle = moveDelta * 0.003; // Smooth lean tilt
-
-            const playerY = getPerspectiveY(hitZoneZ);
-            let nearestIncomingEntity = null;
-            let minDist = Infinity;
-
-            // Render Entities (Notes, Powerups, Obstacles)
-            const speed = diffConfig[difficulty].speed;
-
-            for (let i = entities.length - 1; i >= 0; i--) {
-                const item = entities[i];
-                if (gameState === 'PLAYING') {
-                    item.z += speed;
-                }
-
-                // Magnet attraction mechanics
-                if (magnetTimer > 0 && item.type === 'NOTE' && item.z > 0.4 && item.z < 0.95) {
-                    item.lane += (currentLane - item.lane) * 0.1;
-                }
-
-                const itemX = getLaneX(item.lane, item.z);
-                const itemY = getPerspectiveY(item.z);
-                const itemScale = 0.3 + item.z * 1.1;
-                const radius = 18 * itemScale;
-
-                // Track nearest incoming target for Monster's eyes
-                if (!item.collected && item.z > 0.2 && item.z < hitZoneZ) {
-                    const d = Math.hypot(itemX - playerX, itemY - playerY);
-                    if (d < minDist) {
-                        minDist = d;
-                        nearestIncomingEntity = { x: itemX, y: itemY };
-                    }
-                }
-
-                // Collision Detection Logic
-                if (!item.collected && item.z >= (hitZoneZ - 0.08) && item.z <= (hitZoneZ + 0.08)) {
-                    const inSameLane = Math.abs(item.lane - currentLane) < 0.4;
-
-                    if (inSameLane) {
-                        // OBSTACLES
-                        if (item.type === 'OBSTACLE_HIGH') {
-                            // Requires Slide (Low monster height)
-                            if (!isSliding) {
-                                handleBadHit(item);
-                            }
-                        } else if (item.type === 'OBSTACLE_LOW') {
-                            // Requires Jump (Negative Y offset)
-                            if (playerYOffset > -20) {
-                                handleBadHit(item);
-                            }
-                        } 
-                        // POWER-UPS & NOTES
-                        else {
-                            item.collected = true;
-                            if (item.type === 'NOTE') {
-                                const pts = 100 * (isFrenzyActive ? 2 : 1) * (1 + Math.floor(combo / 10) * 0.5);
-                                score += pts;
-                                combo++;
-                                if (combo > maxCombo) maxCombo = combo;
-
-                                // Charge Frenzy Meter
-                                if (!isFrenzyActive) {
-                                    frenzyMeter = Math.min(100, frenzyMeter + 8);
-                                    if (frenzyMeter >= 100) {
-                                        activateFrenzy();
-                                    }
-                                }
-
-                                biteAnimation = 1.0;
-                                playSoundFX('chomp');
-                                spawnParticles(itemX, itemY, '#ec4899');
-                            } else if (item.type === 'MAGNET') {
-                                magnetTimer = 300; // 5 seconds
-                                playSoundFX('powerup');
-                                spawnParticles(itemX, itemY, '#eab308');
-                            } else if (item.type === 'SHIELD') {
-                                hasShield = true;
-                                playSoundFX('powerup');
-                                spawnParticles(itemX, itemY, '#3b82f6');
-                            } else if (item.type === 'FRENZY') {
-                                activateFrenzy();
-                                playSoundFX('powerup');
-                                spawnParticles(itemX, itemY, '#a855f7');
-                            }
-
-                            updateHUD();
-                        }
-                    }
-                }
-
-                // Missed Note
-                if (!item.collected && item.type === 'NOTE' && item.z > (hitZoneZ + 0.12)) {
-                    item.collected = true;
-                    combo = 0;
-                    frenzyMeter = Math.max(0, frenzyMeter - 15);
-                    updateHUD();
-                }
-
-                // Render Entity Visuals
-                if (!item.collected && item.z <= 1.1) {
-                    ctx.save();
-                    ctx.translate(itemX, itemY);
-
-                    if (item.type === 'NOTE') {
-                        ctx.beginPath();
-                        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-                        ctx.fillStyle = '#ec4899';
-                        ctx.fill();
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(10, radius * 1.2)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf001', 0, 0);
-                    } else if (item.type === 'MAGNET') {
-                        ctx.beginPath();
-                        ctx.arc(0, 0, radius * 1.1, 0, Math.PI * 2);
-                        ctx.fillStyle = '#eab308';
-                        ctx.fill();
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(10, radius)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf076', 0, 0);
-                    } else if (item.type === 'SHIELD') {
-                        ctx.beginPath();
-                        ctx.arc(0, 0, radius * 1.1, 0, Math.PI * 2);
-                        ctx.fillStyle = '#3b82f6';
-                        ctx.fill();
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(10, radius)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf3ed', 0, 0);
-                    } else if (item.type === 'FRENZY') {
-                        ctx.beginPath();
-                        ctx.arc(0, 0, radius * 1.1, 0, Math.PI * 2);
-                        ctx.fillStyle = '#a855f7';
-                        ctx.fill();
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(10, radius)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf0e7', 0, 0);
-                    } else if (item.type === 'OBSTACLE_HIGH') {
-                        // High Spiked Barricade (Requires Sliding)
-                        ctx.fillStyle = '#ef4444';
-                        ctx.fillRect(-radius * 1.5, -radius * 1.2, radius * 3, radius * 0.8);
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(8, radius * 0.7)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf078 DESLIZAR', 0, -radius * 0.8);
-                    } else if (item.type === 'OBSTACLE_LOW') {
-                        // Low Blade Barrier (Requires Jumping)
-                        ctx.fillStyle = '#dc2626';
-                        ctx.fillRect(-radius * 1.5, radius * 0.2, radius * 3, radius * 0.8);
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `${Math.max(8, radius * 0.7)}px FontAwesome`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('\uf077 SALTAR', 0, radius * 0.6);
-                    }
-
-                    ctx.restore();
-                }
-
-                // Remove Outdated
-                if (item.z > 1.2 || item.collected) {
-                    entities.splice(i, 1);
-                }
-            }
-
-            // Handle Bad Obstacle Collisions
-            function handleBadHit(item) {
-                item.collected = true;
-                playSoundFX('hit');
-
-                if (hasShield) {
-                    hasShield = false; // Consume shield protection
-                    spawnParticles(playerX, playerY, '#3b82f6', 25);
-                } else {
-                    combo = 0;
-                    frenzyMeter = 0;
-                    score = Math.max(0, score - 200);
-                    spawnParticles(playerX, playerY, '#ef4444', 30);
-                }
-                updateHUD();
-            }
-
-            // Render Particle Effects
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life -= 0.04;
-
-                if (p.life <= 0) {
-                    particles.splice(i, 1);
-                    continue;
-                }
-
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalAlpha = 1.0;
-            }
-
-            // Decay Mouth Bite Anim
-            if (biteAnimation > 0) biteAnimation -= 0.1;
-
-            // Draw Monster Player
-            drawMonster(playerX, playerY, 44, Math.max(0, biteAnimation), leanAngle, nearestIncomingEntity);
-
-            if (gameState === 'PLAYING') {
-                updateBeatDetection();
-            }
-
-            requestAnimationFrame(render);
-        }
-
-        // Active Frenzy Trigger
-        function activateFrenzy() {
-            isFrenzyActive = true;
-            frenzyMeter = 100;
-            frenzyTimer = 350; // ~6 seconds
-        }
-
-        // HUD Updating
-        function updateHUD() {
-            hudScore.textContent = Math.floor(score);
-            hudCombo.textContent = combo + 'x';
-            frenzyBar.style.width = frenzyMeter + '%';
-            frenzyPercent.textContent = Math.floor(frenzyMeter) + '%';
-
-            // Active Buff Badges UI
-            buffContainer.innerHTML = '';
-            if (hasShield) {
-                buffContainer.innerHTML += `<span class="bg-blue-600/80 text-white text-xs px-2.5 py-1 rounded-lg border border-blue-400"><i class="fa-solid fa-shield"></i></span>`;
-            }
-            if (magnetTimer > 0) {
-                buffContainer.innerHTML += `<span class="bg-yellow-600/80 text-white text-xs px-2.5 py-1 rounded-lg border border-yellow-400"><i class="fa-solid fa-magnet"></i></span>`;
-            }
-            if (isFrenzyActive) {
-                buffContainer.innerHTML += `<span class="bg-purple-600/80 text-white text-xs px-2.5 py-1 rounded-lg border border-purple-400 frenzy-glow"><i class="fa-solid fa-bolt"></i> 2X</span>`;
-            }
-        }
-
-        // Maneuvers (Jump & Slide)
-        function jump() {
-            if (gameState === 'PLAYING' && !isJumping) {
-                isJumping = true;
-                jumpVelocity = -16;
-            }
-        }
-
-        function slide() {
-            if (gameState === 'PLAYING' && !isSliding) {
-                isSliding = true;
-                slideTimer = 32; // Duration frames
-            }
-        }
-
-        function moveLeft() {
-            if (gameState === 'PLAYING' && currentLane > 0) currentLane--;
-        }
-
-        function moveRight() {
-            if (gameState === 'PLAYING' && currentLane < 2) currentLane++;
-        }
-
-        // Controls Event Listeners
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
-            else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
-            else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') jump();
-            else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') slide();
-            else if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') togglePause();
-        });
-
-        // Touch Swipe Gestures Handling
-        let touchStartX = 0;
-        let touchStartY = 0;
-
-        window.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-
-        window.addEventListener('touchend', (e) => {
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            const dx = touchEndX - touchStartX;
-            const dy = touchEndY - touchStartY;
-
-            if (Math.abs(dx) > Math.abs(dy)) {
-                if (dx > 30) moveRight();
-                else if (dx < -30) moveLeft();
-            } else {
-                if (dy < -30) jump();
-                else if (dy > 30) slide();
-            }
-        }, { passive: true });
-
-        mobileLeft.addEventListener('click', moveLeft);
-        mobileRight.addEventListener('click', moveRight);
-        mobileUp.addEventListener('click', jump);
-        mobileDown.addEventListener('click', slide);
-
-        function startGame() {
-            initAudioContext();
-            entities = [];
-            particles = [];
-            score = 0;
-            combo = 0;
-            maxCombo = 0;
-            frenzyMeter = 0;
-            isFrenzyActive = false;
-            hasShield = false;
-            magnetTimer = 0;
-            currentLane = 1;
-            playerX = getLaneX(1, 0.88);
-
-            updateHUD();
-
-            mainMenu.classList.add('hidden');
-            pauseMenu.classList.add('hidden');
-            gameOverMenu.classList.add('hidden');
-            hudOverlay.classList.remove('hidden');
-
-            gameState = 'PLAYING';
-
-            if (audioMode === 'DEMO') {
-                createDemoSynthTrack();
-            } else if (audioMode === 'YOUTUBE') {
-                createDemoSynthTrack();
-                if (ytPlayer && isYtReady && ytVideoId) {
-                    ytPlayer.loadVideoById(ytVideoId);
-                    ytPlayer.playVideo();
-                }
-            } else if (audioElement) {
-                audioElement.currentTime = 0;
-                audioElement.play().catch(e => console.log("Audio play error:", e));
-            }
-        }
-
-        function togglePause() {
-            if (gameState === 'PLAYING') {
-                gameState = 'PAUSED';
-                pauseMenu.classList.remove('hidden');
-                if (synthInterval) clearInterval(synthInterval);
-                if (audioElement && audioMode !== 'DEMO' && audioMode !== 'YOUTUBE') audioElement.pause();
-                if (audioMode === 'YOUTUBE' && ytPlayer && isYtReady) ytPlayer.pauseVideo();
-            } else if (gameState === 'PAUSED') {
-                gameState = 'PLAYING';
-                pauseMenu.classList.add('hidden');
-                if (audioMode === 'DEMO' || audioMode === 'YOUTUBE') {
-                    createDemoSynthTrack();
-                    if (audioMode === 'YOUTUBE' && ytPlayer && isYtReady) ytPlayer.playVideo();
-                } else if (audioElement) {
-                    audioElement.play().catch(e => console.log("Audio play error:", e));
-                }
-            }
-        }
-
-        function triggerGameOver() {
-            gameState = 'GAMEOVER';
-            if (synthInterval) clearInterval(synthInterval);
-            if (audioElement) audioElement.pause();
-            if (audioMode === 'YOUTUBE' && ytPlayer && isYtReady) ytPlayer.stopVideo();
-
-            hudOverlay.classList.add('hidden');
-            gameOverMenu.classList.remove('hidden');
-
-            document.getElementById('finalScore').textContent = Math.floor(score);
-            document.getElementById('finalCombo').textContent = maxCombo + 'x';
-        }
-
-        startBtn.addEventListener('click', startGame);
-        pauseBtn.addEventListener('click', togglePause);
-        resumeBtn.addEventListener('click', togglePause);
-        restartBtn.addEventListener('click', startGame);
-        retryBtn.addEventListener('click', startGame);
-
-        toMenuBtn.addEventListener('click', () => {
-            if (synthInterval) clearInterval(synthInterval);
-            if (audioElement) audioElement.pause();
-            if (ytPlayer && isYtReady) ytPlayer.stopVideo();
-            gameState = 'MENU';
-            pauseMenu.classList.add('hidden');
-            hudOverlay.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
-        });
-
-        goMenuBtn.addEventListener('click', () => {
-            if (ytPlayer && isYtReady) ytPlayer.stopVideo();
-            gameState = 'MENU';
-            gameOverMenu.classList.add('hidden');
-            hudOverlay.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
-        });
-
-        diffBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                diffBtns.forEach(b => {
-                    b.classList.remove('border-red-500', 'bg-red-500/20', 'text-white');
-                    b.classList.add('border-gray-700', 'text-gray-400');
-                });
-                btn.classList.remove('border-gray-700', 'text-gray-400');
-                btn.classList.add('border-red-500', 'bg-red-500/20', 'text-white');
-                difficulty = btn.dataset.diff;
-            });
-        });
-
-        audioFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                fileUploadLabel.textContent = file.name;
-                loadAudioFromUrl(URL.createObjectURL(file));
-                audioMode = 'FILE';
-            }
-        });
-
-        loadUrlBtn.addEventListener('click', () => {
-            const url = songUrlInput.value.trim();
-            if (url) {
-                loadAudioFromUrl(url);
-            }
-        });
-
-        selectDemoBtn.addEventListener('click', () => {
-            audioMode = 'DEMO';
-            demoBadge.classList.remove('hidden');
-            if (audioElement) audioElement.pause();
-            if (ytPlayer && isYtReady) ytPlayer.stopVideo();
-            fileUploadLabel.textContent = "Subir MP3 o Audio Local";
-            songUrlInput.value = "";
-        });
-
-        // Start animation loop
-        render();
-    </script>
+      });
+
+      requestAnimationFrame(updateGame);
+    }
+
+    // Efecto visual de partículas al acertar
+    function createParticles(laneIndex, color) {
+      const targetZone = document.getElementById(`target-${laneIndex}`);
+      const rect = targetZone.getBoundingClientRect();
+      const trackRect = track.getBoundingClientRect();
+
+      const originX = rect.left - trackRect.left + rect.width / 2;
+      const originY = rect.top - trackRect.top + rect.height / 2;
+
+      for (let i = 0; i < 12; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.backgroundColor = color;
+        p.style.left = `${originX}px`;
+        p.style.top = `${originY}px`;
+
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 30 + Math.random() * 40;
+        p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+        p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+
+        track.appendChild(p);
+        setTimeout(() => p.remove(), 400);
+      }
+    }
+
+    // Manejo de controles e interacción
+    window.addEventListener('keydown', e => {
+      const key = e.key.toLowerCase();
+      if (!(key in laneKeys) || !isPlaying) return;
+
+      const lane = laneKeys[key];
+      const targetZone = document.getElementById(`target-${lane}`);
+      targetZone.classList.add('active');
+
+      const elapsed = performance.now() - startTime;
+      const colors = ['#ff007f', '#00f0ff', '#00ff66', '#ffdd00'];
+      const freqs = [261.63, 329.63, 392.00, 523.25];
+
+      // Buscar nota más cercana dentro de la ventana de impacto
+      const targetNote = notes.find(n => n.lane === lane && !n.hit && !n.missed && Math.abs(n.targetTime - elapsed) < 110);
+
+      if (targetNote) {
+        targetNote.hit = true;
+        targetNote.el.remove();
+        
+        score += 100 + combo * 10;
+        combo++;
+        scoreEl.innerText = score;
+        comboEl.innerText = combo;
+
+        playNoteSound(freqs[lane]);
+        createParticles(lane, colors[lane]);
+      }
+    });
+
+    window.addEventListener('keyup', e => {
+      const key = e.key.toLowerCase();
+      if (key in laneKeys) {
+        document.getElementById(`target-${laneKeys[key]}`).classList.remove('active');
+      }
+    });
+
+    startBtn.addEventListener('click', startGame);
+  </script>
 </body>
 </html>
