@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Numpad Memory: Low-Poly Forest</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050510; color: white; font-family: 'Inter', sans-serif; user-select: none; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 2rem; }
+        .text-shadow { text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+        
+        /* Keyframe animation for UI */
+        @keyframes pulse-text {
+            0% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 0.7; transform: scale(1); }
+        }
+        .animate-pulse-custom { animation: pulse-text 2s infinite ease-in-out; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div class="flex justify-between items-start w-full">
+            <div>
+                <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 text-shadow mb-2 tracking-wider">LUMINA PAD</h1>
+                <p class="text-sm font-bold text-gray-300 text-shadow">A Memory Game in the Void</p>
+            </div>
+            <div class="text-right">
+                <p class="text-2xl font-bold text-shadow text-white">Score: <span id="score-display">0</span></p>
+                <p class="text-sm font-bold text-gray-400 text-shadow mt-1">High Score: <span id="highscore-display">0</span></p>
+            </div>
+        </div>
+
+        <div id="center-message" class="flex flex-col items-center justify-center flex-grow">
+            <h2 id="status-text" class="text-5xl font-bold text-white text-shadow mb-4 animate-pulse-custom text-center">Press NUMPAD 5 to Start</h2>
+            <div class="bg-black/50 backdrop-blur-md p-6 rounded-xl border border-white/10 mt-8 text-center shadow-2xl">
+                <h3 class="text-xl font-bold mb-4 text-gray-200">CONTROLS (NUMPAD ONLY)</h3>
+                <div class="grid grid-cols-3 gap-2 text-sm font-bold">
+                    <div></div>
+                    <div class="bg-green-600/30 border border-green-500 p-3 rounded text-green-300">8 (UP)</div>
+                    <div></div>
+                    <div class="bg-blue-600/30 border border-blue-500 p-3 rounded text-blue-300">4 (LEFT)</div>
+                    <div class="bg-gray-600/30 border border-gray-500 p-3 rounded text-white">5 (START)</div>
+                    <div class="bg-yellow-600/30 border border-yellow-500 p-3 rounded text-yellow-300">6 (RIGHT)</div>
+                    <div></div>
+                    <div class="bg-purple-600/30 border border-purple-500 p-3 rounded text-purple-300">2 (DOWN)</div>
+                    <div></div>
+                </div>
+                <p class="text-xs text-gray-400 mt-4">Note: NumLock must be ON.</p>
+            </div>
+        </div>
+        
+        <div class="text-center text-xs font-bold text-gray-500 text-shadow">
+            Sound ON required. Follow the light sequence.
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- Web Audio API Synth ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        const PAD_COLORS = {
+            UP: 0x00ff44,   // Numpad8 - Green
+            LEFT: 0x0088ff, // Numpad4 - Blue
+            RIGHT: 0xffcc00,// Numpad6 - Yellow
+            DOWN: 0xbb00ff, // Numpad2 - Purple
+            CENTER: 0xffffff// Numpad5 - White
+        };
+
+        const PAD_FREQUENCIES = {
+            UP: 440.00,    // A4
+            LEFT: 329.63,  // E4
+            RIGHT: 523.25, // C5
+            DOWN: 261.63,  // C4
+            CENTER: 880.00 // A5 (Start sound)
+        };
+
+        function playTone(freq, duration = 0.4, type = 'square') {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+            filter.type = 'lowpass';
+            filter.frequency.value = 2000;
+
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+            osc.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        // --- Game State ---
+        const STATE = {
+            START_SCREEN: 0,
+            PLAYING_SEQUENCE: 1,
+            WAITING_INPUT: 2,
+            GAME_OVER: 3
+        };
+
+        let currentState = STATE.START_SCREEN;
+        let sequence = [];
+        let playerStep = 0;
+        let score = 0;
+        let highScore = localStorage.getItem('numpadMemoryHighScore') || 0;
+        
+        document.getElementById('highscore-display').innerText = highScore;
+
+        const PADS = ['UP', 'LEFT', 'RIGHT', 'DOWN'];
+
+        // --- Three.js Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050510, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 18, 22);
+        camera.lookAt(0, -2, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.HemisphereLight(0x222244, 0x050510, 1.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0x88bbff, 1);
+        directionalLight.position.set(10, 20, -10);
+        scene.add(directionalLight);
+
+        // --- Environment Objects ---
+        const materials = {
+            island: new THREE.MeshStandardMaterial({ color: 0x223344, flatShading: true, roughness: 0.9 }),
+            padBase: new THREE.MeshStandardMaterial({ color: 0x111111, flatShading: true }),
+            greenGlow: new THREE.MeshStandardMaterial({ color: 0x113311, emissive: PAD_COLORS.UP, emissiveIntensity: 0, flatShading: true }),
+            blueGlow: new THREE.MeshStandardMaterial({ color: 0x112233, emissive: PAD_COLORS.LEFT, emissiveIntensity: 0, flatShading: true }),
+            yellowGlow: new THREE.MeshStandardMaterial({ color: 0x333311, emissive: PAD_COLORS.RIGHT, emissiveIntensity: 0, flatShading: true }),
+            purpleGlow: new THREE.MeshStandardMaterial({ color: 0x221133, emissive: PAD_COLORS.DOWN, emissiveIntensity: 0, flatShading: true }),
+            whiteGlow: new THREE.MeshStandardMaterial({ color: 0x222222, emissive: PAD_COLORS.CENTER, emissiveIntensity: 0, flatShading: true }),
+            wood: new THREE.MeshStandardMaterial({ color: 0x3d2817, flatShading: true }),
+            rock: new THREE.MeshStandardMaterial({ color: 0x555566, flatShading: true })
+        };
+
+        const padMaterials = {
+            'UP': materials.greenGlow,
+            'LEFT': materials.blueGlow,
+            'RIGHT': materials.yellowGlow,
+            'DOWN': materials.purpleGlow,
+            'CENTER': materials.whiteGlow
+        };
+
+        const sceneGroup = new THREE.Group();
+        scene.add(sceneGroup);
+
+        // Island Base (Inverted Cone/Cylinder combo)
+        const islandGeo = new THREE.CylinderGeometry(14, 2, 8, 8, 1);
+        const island = new THREE.Mesh(islandGeo, materials.island);
+        island.position.y = -4.1;
+        sceneGroup.add(island);
+
+        // Starfield
+        const starsGeo = new THREE.BufferGeometry();
+        const starsCount = 1500;
+        const posArray = new Float32Array(starsCount * 3);
+        for(let i = 0; i < starsCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 150;
+        }
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMat = new THREE.PointsMaterial({ size: 0.1, color: 0xffffff });
+        const stars = new THREE.Points(starsGeo, starsMat);
+        scene.add(stars);
+
+        // --- Interactive Elements (Pads) ---
+        const padMeshes = {};
+        const envMeshes = { 'UP': [], 'LEFT': [], 'RIGHT': [], 'DOWN': [] };
+
+        function createPad(id, x, z, mat) {
+            const baseGeo = new THREE.BoxGeometry(3.5, 0.5, 3.5);
+            const base = new THREE.Mesh(baseGeo, materials.padBase);
+            base.position.set(x, 0, z);
+            
+            const lightGeo = new THREE.PlaneGeometry(2.5, 2.5);
+            const light = new THREE.Mesh(lightGeo, mat);
+            light.rotation.x = -Math.PI / 2;
+            light.position.y = 0.26;
+            base.add(light);
+            
+            sceneGroup.add(base);
+            padMeshes[id] = mat; // Store material to animate emissive
+        }
+
+        // Layout: Cross
+        createPad('CENTER', 0, 0, materials.whiteGlow);
+        createPad('UP', 0, -4.5, materials.greenGlow);
+        createPad('DOWN', 0, 4.5, materials.purpleGlow);
+        createPad('LEFT', -4.5, 0, materials.blueGlow);
+        createPad('RIGHT', 4.5, 0, materials.yellowGlow);
+
+        // --- Low Poly Environment Props ---
+        // UP / GREEN: Low-poly Trees
+        for(let i=0; i<3; i++) {
+            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 2, 5);
+            const trunk = new THREE.Mesh(trunkGeo, materials.wood);
+            trunk.position.set((Math.random()-0.5)*8, 1, -8 - Math.random()*3);
+            
+            const leavesGeo = new THREE.ConeGeometry(2 + Math.random(), 4, 5);
+            const leaves = new THREE.Mesh(leavesGeo, materials.greenGlow);
+            leaves.position.y = 2.5;
+            trunk.add(leaves);
+            
+            sceneGroup.add(trunk);
+            envMeshes['UP'].push(materials.greenGlow);
+        }
+
+        // DOWN / PURPLE: Mushrooms
+        for(let i=0; i<5; i++) {
+            const stemGeo = new THREE.CylinderGeometry(0.2, 0.3, 1, 5);
+            const stem = new THREE.Mesh(stemGeo, materials.wood);
+            stem.position.set((Math.random()-0.5)*8, 0.5, 8 + Math.random()*3);
+            
+            const capGeo = new THREE.DodecahedronGeometry(0.8);
+            const cap = new THREE.Mesh(capGeo, materials.purpleGlow);
+            cap.position.y = 0.5;
+            cap.scale.set(1, 0.5, 1);
+            stem.add(cap);
+            
+            sceneGroup.add(stem);
+            envMeshes['DOWN'].push(materials.purpleGlow);
+        }
+
+        // LEFT / BLUE: Waterfall / Magic Pool
+        const poolGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.2, 8);
+        const pool = new THREE.Mesh(poolGeo, materials.blueGlow);
+        pool.position.set(-9, 0.1, 0);
+        sceneGroup.add(pool);
+        envMeshes['LEFT'].push(materials.blueGlow);
+
+        for(let i=0; i<3; i++) {
+            const fallGeo = new THREE.BoxGeometry(0.8, 4, 0.8);
+            const fall = new THREE.Mesh(fallGeo, materials.blueGlow);
+            fall.position.set(-11 - (i*0.5), -2, (Math.random()-0.5)*2);
+            sceneGroup.add(fall);
+            envMeshes['LEFT'].push(materials.blueGlow);
+        }
+
+        // RIGHT / YELLOW: Crystals
+        for(let i=0; i<4; i++) {
+            const crystalGeo = new THREE.OctahedronGeometry(1 + Math.random(), 0);
+            const crystal = new THREE.Mesh(crystalGeo, materials.yellowGlow);
+            crystal.position.set(8 + Math.random()*3, 1 + Math.random(), (Math.random()-0.5)*5);
+            crystal.rotation.set(Math.random(), Math.random(), Math.random());
+            sceneGroup.add(crystal);
+            envMeshes['RIGHT'].push(materials.yellowGlow);
+        }
+
+        // --- Glow Animation Logic ---
+        let activeGlows = {};
+
+        function triggerPad(id, isPlayer = false) {
+            // Visual Glow
+            activeGlows[id] = 1.0; 
+            
+            // Audio
+            playTone(PAD_FREQUENCIES[id]);
+            
+            // Interaction Feedback
+            if(isPlayer && padMeshes[id]) {
+                 padMeshes[id].emissiveIntensity = 2.0; // Flash brighter for player
+            }
+        }
+
+        function setStatus(text, showSub = true) {
+            const el = document.getElementById('status-text');
+            el.innerText = text;
+            document.querySelector('#center-message > div').style.display = showSub ? 'block' : 'none';
+        }
+
+        // --- Game Flow ---
+        async function startGame() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            score = 0;
+            sequence = [];
+            document.getElementById('score-display').innerText = score;
+            
+            triggerPad('CENTER');
+            setStatus("GET READY...", false);
+            
+            setTimeout(() => {
+                nextRound();
+            }, 1500);
+        }
+
+        function nextRound() {
+            playerStep = 0;
+            const nextPad = PADS[Math.floor(Math.random() * PADS.length)];
+            sequence.push(nextPad);
+            
+            currentState = STATE.PLAYING_SEQUENCE;
+            setStatus("WATCH...", false);
+            
+            playSequence();
+        }
+
+        function playSequence() {
+            let i = 0;
+            const interval = setInterval(() => {
+                triggerPad(sequence[i]);
+                i++;
+                if (i >= sequence.length) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        currentState = STATE.WAITING_INPUT;
+                        setStatus("YOUR TURN", false);
+                        document.getElementById('status-text').classList.add('text-white');
+                        document.getElementById('status-text').classList.remove('text-red-500');
+                    }, 500);
+                }
+            }, 800); // Speed of sequence
+        }
+
+        function gameOver() {
+            currentState = STATE.GAME_OVER;
+            playTone(150, 0.8, 'sawtooth'); // Error sound
+            
+            // Flash all red (pseudo red via emissive trick or just clear)
+            for (let mat in padMaterials) {
+                padMaterials[mat].emissiveIntensity = 0;
+            }
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('numpadMemoryHighScore', highScore);
+                document.getElementById('highscore-display').innerText = highScore;
+            }
+
+            setStatus("GAME OVER", true);
+            document.getElementById('status-text').innerHTML = `GAME OVER<br><span class="text-2xl mt-4 block text-gray-300">Press NUMPAD 5 to Restart</span>`;
+            document.getElementById('status-text').classList.add('text-red-500');
+            document.getElementById('status-text').classList.remove('text-white');
+        }
+
+        function handlePlayerInput(padId) {
+            if (currentState !== STATE.WAITING_INPUT) return;
+
+            triggerPad(padId, true);
+
+            if (sequence[playerStep] === padId) {
+                // Correct step
+                playerStep++;
+                if (playerStep === sequence.length) {
+                    // Sequence complete
+                    currentState = STATE.PLAYING_SEQUENCE; // lock input
+                    score++;
+                    document.getElementById('score-display').innerText = score;
+                    setStatus("CORRECT!", false);
+                    setTimeout(nextRound, 1000);
+                }
+            } else {
+                // Wrong step
+                gameOver();
+            }
+        }
+
+        // --- Input Handling ---
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return; // Prevent hold spam
+
+            // Map strict Numpad key codes
+            switch(e.code) {
+                case 'Numpad5':
+                    if (currentState === STATE.START_SCREEN || currentState === STATE.GAME_OVER) {
+                        startGame();
+                    } else if (currentState === STATE.WAITING_INPUT) {
+                        // Numpad 5 during game acts as a mistake, since it's not in the 4 directions
+                        gameOver();
+                    }
+                    break;
+                case 'Numpad8':
+                    handlePlayerInput('UP');
+                    break;
+                case 'Numpad4':
+                    handlePlayerInput('LEFT');
+                    break;
+                case 'Numpad6':
+                    handlePlayerInput('RIGHT');
+                    break;
+                case 'Numpad2':
+                    handlePlayerInput('DOWN');
+                    break;
+            }
+        });
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = clock.getElapsedTime();
+            const delta = clock.getDelta();
+
+            // Idle island floating animation
+            sceneGroup.position.y = Math.sin(time * 1.5) * 0.3;
+            sceneGroup.rotation.y = Math.sin(time * 0.2) * 0.05;
+
+            // Rotate stars slowly
+            stars.rotation.y = time * 0.02;
+
+            // Fade out glows
+            for (let key in padMaterials) {
+                if (activeGlows[key] > 0) {
+                    activeGlows[key] -= 0.03; // Fade speed
+                    if (activeGlows[key] < 0) activeGlows[key] = 0;
+                    
+                    // Apply to materials
+                    padMaterials[key].emissiveIntensity = activeGlows[key] * 2.5; // Max glow intensity
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Start loop
+        window.onload = function() {
+            animate();
+        };
+
+    </script>
+</body>
+</html>
